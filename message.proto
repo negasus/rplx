@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+package rplx;
+
+message SyncNodeValue {
+    string ID = 1;
+    int64 Value = 2;
+    int64 Stamp = 3;
+}
+
+message SyncVariable {
+    // map key - nodeID
+    map<string, SyncNodeValue> NodesValues = 1;
+    int64 TTL = 2;
+}
+
+message SyncRequest {
+    string NodeID = 1;
+    // map key - variable name
+    map<string, SyncVariable> Variables = 2;
+}
+
+message SyncResponse {
+    int64 Code = 1;
+}
+
+service Replicator {
+    rpc Sync (SyncRequest) returns (SyncResponse) {
+    }
+}
+
