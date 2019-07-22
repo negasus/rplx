@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.0.3 (2019-07-22)
+
+- add ttlStamp conception
+
 ## v0.0.2 (2019-07-22)
 
 - add rplx.Delete method
