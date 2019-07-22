@@ -18,6 +18,8 @@ var defaultSendVariableToNodeTimeout = time.Millisecond * 500
 
 var defaultSendToReplicationTimeout = time.Millisecond * 500
 
+var defaultGCInterval = time.Second * 60
+
 // Rplx describe main Rplx object
 type Rplx struct {
 	nodeID string
@@ -30,6 +32,8 @@ type Rplx struct {
 
 	variablesMx sync.RWMutex
 	variables   map[string]*variable
+
+	GCInterval time.Duration
 }
 
 // New creates new Rplx
@@ -40,9 +44,11 @@ func New(nodeID string, logger *zap.Logger) *Rplx {
 		variables:       make(map[string]*variable),
 		replicationChan: make(chan *variable, replicationChannelCap),
 		nodes:           make(map[string]*node),
+		GCInterval:      defaultGCInterval,
 	}
 
 	go r.listenReplicationChannel()
+	go r.startGC()
 
 	return r
 }
@@ -109,4 +115,41 @@ func (rplx *Rplx) sendVariableToNode(v *variable, nodeID string, n *node) {
 	case <-time.After(defaultSendVariableToNodeTimeout):
 		rplx.logger.Error("error send variable to node replication channel", zap.String("remote node ID", nodeID))
 	}
+}
+
+// startGC start GC loop
+func (rplx *Rplx) startGC() {
+	rplx.logger.Debug("start GC loop")
+
+	t := time.NewTicker(rplx.GCInterval)
+
+	for range t.C {
+		rplx.gc()
+	}
+}
+
+// gc collects expired variables and remove it from rplx.variable map
+func (rplx *Rplx) gc() {
+	vars := make([]string, 0)
+
+	now := time.Now().UTC().UnixNano()
+
+	rplx.variablesMx.RLock()
+
+	currentLen := len(rplx.variables)
+
+	for name, v := range rplx.variables {
+		if v.ttl < now {
+			vars = append(vars, name)
+		}
+	}
+	rplx.variablesMx.RUnlock()
+
+	rplx.variablesMx.Lock()
+	for _, name := range vars {
+		delete(rplx.variables, name)
+	}
+	rplx.variablesMx.Unlock()
+
+	rplx.logger.Debug("GC done", zap.Int("deleted", len(vars)), zap.Int("init count", currentLen))
 }
