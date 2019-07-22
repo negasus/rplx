@@ -1,14 +1,9 @@
 package rplx
 
 import (
-	"errors"
 	"sync"
 	"sync/atomic"
 	"time"
-)
-
-var (
-	ErrVariableExpired = errors.New("variable expired")
 )
 
 type variable struct {
@@ -35,13 +30,8 @@ func newVariable(name string) *variable {
 	return v
 }
 
-// get returns variable value or error, if variable is expired
+// get returns variable value
 func (v *variable) get() (int64, error) {
-	ttl := v.getTTL()
-	if ttl > 0 && ttl < time.Now().UTC().UnixNano() {
-		return 0, ErrVariableExpired
-	}
-
 	result := v.selfItem.value()
 
 	v.remoteItemsMx.RLock()

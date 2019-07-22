@@ -4,18 +4,7 @@ import (
 	"fmt"
 	"github.com/stretchr/testify/assert"
 	"testing"
-	"time"
 )
-
-func TestVariable_Get_VariableExpired(t *testing.T) {
-	v := newVariable("var1")
-
-	v.ttl = time.Now().UTC().Add(-time.Second).UnixNano()
-
-	_, err := v.get()
-	assert.Error(t, err)
-	assert.Equal(t, ErrVariableExpired, err)
-}
 
 func TestVariable_Get(t *testing.T) {
 	v := newVariable("var1")
