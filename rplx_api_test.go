@@ -74,3 +74,29 @@ func TestRplx_Delete(t *testing.T) {
 	assert.NoError(t, err)
 	assert.True(t, v.ttl > 0 && v.ttl < time.Now().UTC().UnixNano())
 }
+
+func TestRplx_Upsert_NotExists(t *testing.T) {
+	rplx := New("node1", zap.NewNop())
+
+	rplx.Upsert("var1", 100)
+
+	v, ok := rplx.variables["var1"]
+
+	assert.True(t, ok)
+	assert.Equal(t, int64(100), v.selfItem.v)
+}
+
+func TestRplx_Upsert(t *testing.T) {
+	rplx := New("node1", zap.NewNop())
+
+	v := newVariable("var1")
+	v.selfItem.v = 100
+	rplx.variables["var1"] = v
+
+	rplx.Upsert("var1", 200)
+
+	v, ok := rplx.variables["var1"]
+
+	assert.True(t, ok)
+	assert.Equal(t, int64(300), v.selfItem.v)
+}
