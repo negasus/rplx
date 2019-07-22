@@ -2,13 +2,12 @@ package rplx
 
 import (
 	"github.com/stretchr/testify/assert"
-	"go.uber.org/zap"
 	"testing"
 	"time"
 )
 
 func TestRplx_Get_NotExists(t *testing.T) {
-	rplx := New("node1", zap.NewNop())
+	rplx := New("node1")
 
 	_, err := rplx.Get("var1")
 
@@ -17,7 +16,7 @@ func TestRplx_Get_NotExists(t *testing.T) {
 }
 
 func TestRplx_Get_Expired(t *testing.T) {
-	rplx := New("node1", zap.NewNop())
+	rplx := New("node1")
 
 	v := newVariable("var1")
 	v.ttl = time.Now().UTC().Add(-time.Second).UnixNano()
@@ -34,7 +33,7 @@ func TestRplx_Get_Expired(t *testing.T) {
 }
 
 func TestRplx_Get(t *testing.T) {
-	rplx := New("node1", zap.NewNop())
+	rplx := New("node1")
 
 	v := newVariable("var1")
 	v.selfItem.v = 42
@@ -52,7 +51,7 @@ func TestRplx_Get(t *testing.T) {
 }
 
 func TestRplx_Delete_NotExists(t *testing.T) {
-	rplx := New("node1", zap.NewNop())
+	rplx := New("node1")
 
 	err := rplx.Delete("var1")
 
@@ -61,7 +60,7 @@ func TestRplx_Delete_NotExists(t *testing.T) {
 }
 
 func TestRplx_Delete(t *testing.T) {
-	rplx := New("node1", zap.NewNop())
+	rplx := New("node1")
 
 	v := newVariable("var1")
 
@@ -76,7 +75,7 @@ func TestRplx_Delete(t *testing.T) {
 }
 
 func TestRplx_Upsert_NotExists(t *testing.T) {
-	rplx := New("node1", zap.NewNop())
+	rplx := New("node1")
 
 	rplx.Upsert("var1", 100)
 
@@ -87,7 +86,7 @@ func TestRplx_Upsert_NotExists(t *testing.T) {
 }
 
 func TestRplx_Upsert(t *testing.T) {
-	rplx := New("node1", zap.NewNop())
+	rplx := New("node1")
 
 	v := newVariable("var1")
 	v.selfItem.v = 100
@@ -102,7 +101,7 @@ func TestRplx_Upsert(t *testing.T) {
 }
 
 func TestRplx_UpdateTTL_NotExists(t *testing.T) {
-	rplx := New("node1", zap.NewNop())
+	rplx := New("node1")
 
 	err := rplx.UpdateTTL("var1", time.Now())
 
@@ -111,7 +110,7 @@ func TestRplx_UpdateTTL_NotExists(t *testing.T) {
 }
 
 func TestRplx_UpdateTTL(t *testing.T) {
-	rplx := New("node1", zap.NewNop())
+	rplx := New("node1")
 
 	t1 := time.Now().UTC().UnixNano()
 

@@ -10,15 +10,15 @@ import (
 	"time"
 )
 
-const replicationChannelCap = 1024
+var (
+	ErrNodeAlreadyExists = errors.New("node already exists")
 
-var ErrNodeAlreadyExists = errors.New("node already exists")
-
-var defaultSendVariableToNodeTimeout = time.Millisecond * 500
-
-var defaultSendToReplicationTimeout = time.Millisecond * 500
-
-var defaultGCInterval = time.Second * 60
+	defaultSendVariableToNodeTimeout = time.Millisecond * 500
+	defaultSendToReplicationTimeout  = time.Millisecond * 500
+	defaultGCInterval                = time.Second * 60
+	defaultLogger                    = zap.NewNop()
+	defaultReplicationChanCap        = 10240
+)
 
 // Rplx describe main Rplx object
 type Rplx struct {
@@ -33,18 +33,22 @@ type Rplx struct {
 	variablesMx sync.RWMutex
 	variables   map[string]*variable
 
-	GCInterval time.Duration
+	gcInterval time.Duration
 }
 
 // New creates new Rplx
-func New(nodeID string, logger *zap.Logger) *Rplx {
+func New(nodeID string, opts ...Option) *Rplx {
 	r := &Rplx{
 		nodeID:          nodeID,
-		logger:          logger,
+		logger:          defaultLogger,
 		variables:       make(map[string]*variable),
-		replicationChan: make(chan *variable, replicationChannelCap),
+		replicationChan: make(chan *variable, defaultReplicationChanCap),
 		nodes:           make(map[string]*node),
-		GCInterval:      defaultGCInterval,
+		gcInterval:      defaultGCInterval,
+	}
+
+	for _, o := range opts {
+		o(r)
 	}
 
 	go r.listenReplicationChannel()
@@ -121,7 +125,7 @@ func (rplx *Rplx) sendVariableToNode(v *variable, nodeID string, n *node) {
 func (rplx *Rplx) startGC() {
 	rplx.logger.Debug("start GC loop")
 
-	t := time.NewTicker(rplx.GCInterval)
+	t := time.NewTicker(rplx.gcInterval)
 
 	for range t.C {
 		rplx.gc()
@@ -139,7 +143,7 @@ func (rplx *Rplx) gc() {
 	currentLen := len(rplx.variables)
 
 	for name, v := range rplx.variables {
-		if v.ttl < now {
+		if v.ttl > 0 && v.ttl < now {
 			vars = append(vars, name)
 		}
 	}
