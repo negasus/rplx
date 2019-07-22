@@ -2,6 +2,7 @@ package rplx
 
 import (
 	"context"
+	"fmt"
 	"go.uber.org/zap"
 )
 
@@ -57,6 +58,7 @@ func (n *node) sync() error {
 
 	if r.Code != syncCodeSuccess {
 		n.logger.Warn("error sync response code", zap.Int64("code", r.Code))
+		return fmt.Errorf("bad response code, %d", r.Code)
 	}
 
 	return nil

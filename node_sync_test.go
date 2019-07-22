@@ -99,3 +99,22 @@ func TestNode_Sync(t *testing.T) {
 	assert.NoError(t, err)
 	replicatorClient.AssertExpectations(t)
 }
+
+func TestNodeSync_BadResponseCode(t *testing.T) {
+	replicatorClient := &mockReplicationClient{}
+
+	replicatorClient.On("Sync", mock.Anything, mock.Anything, mock.Anything).Return(&SyncResponse{Code: 1}, nil)
+
+	n := &node{
+		localNodeID:      "node1",
+		replicatorClient: replicatorClient,
+		buffer:           make(map[string]*variable),
+		logger:           zap.NewNop(),
+	}
+
+	err := n.sync()
+
+	assert.Error(t, err)
+	assert.Equal(t, "bad response code, 1", err.Error())
+
+}
