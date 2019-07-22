@@ -33,6 +33,26 @@ func (rplx *Rplx) Get(name string) (int64, error) {
 	return v.get()
 }
 
+// Delete sets for variable ttl with -1 sec from Now,
+// sends variable to replication (update TTL on clients) and remove variable from rplx.variables map
+func (rplx *Rplx) Delete(name string) error {
+	rplx.variablesMx.Lock()
+	defer rplx.variablesMx.Unlock()
+
+	v, ok := rplx.variables[name]
+	if !ok {
+		return ErrVariableNotExists
+	}
+
+	v.updateTTL(time.Now().UTC().Add(-time.Second))
+
+	go rplx.sendToReplication(v)
+
+	delete(rplx.variables, name)
+
+	return nil
+}
+
 // Upsert change variable on delta or create variable, if not exists
 func (rplx *Rplx) Upsert(name string, delta int64) {
 	var v *variable
