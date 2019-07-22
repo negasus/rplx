@@ -121,8 +121,9 @@ func (rplx *Rplx) listenReplicationChannel() {
 	for v := range rplx.replicationChan {
 		rplx.nodesMx.RLock()
 		for nodeID, node := range rplx.nodes {
-			// todo check isReplicated for node
-			go rplx.sendVariableToNode(v, nodeID, node)
+			if !v.isReplicated(node.ID) {
+				go rplx.sendVariableToNode(v, nodeID, node)
+			}
 		}
 		rplx.nodesMx.RUnlock()
 	}
