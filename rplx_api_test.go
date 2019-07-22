@@ -50,3 +50,27 @@ func TestRplx_Get(t *testing.T) {
 	assert.True(t, ok)
 	assert.Equal(t, vv, v)
 }
+
+func TestRplx_Delete_NotExists(t *testing.T) {
+	rplx := New("node1", zap.NewNop())
+
+	err := rplx.Delete("var1")
+
+	assert.Error(t, err)
+	assert.Equal(t, ErrVariableNotExists, err)
+}
+
+func TestRplx_Delete(t *testing.T) {
+	rplx := New("node1", zap.NewNop())
+
+	v := newVariable("var1")
+
+	rplx.variables["var1"] = v
+
+	assert.True(t, v.ttl == 0)
+
+	err := rplx.Delete("var1")
+
+	assert.NoError(t, err)
+	assert.True(t, v.ttl > 0 && v.ttl < time.Now().UTC().UnixNano())
+}
