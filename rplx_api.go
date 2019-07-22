@@ -2,19 +2,31 @@ package rplx
 
 import (
 	"github.com/pkg/errors"
+	"time"
 )
 
 var (
 	ErrVariableNotExists = errors.New("variable not exists")
 )
 
-// get returns variable v or error if variable not exists
+// get returns variable v or error if variable not exists or expired
+// if variable expired, removes variable from rplx.variables map
 func (rplx *Rplx) Get(name string) (int64, error) {
 	rplx.variablesMx.RLock()
-	defer rplx.variablesMx.RUnlock()
-
 	v, ok := rplx.variables[name]
+	rplx.variablesMx.RUnlock()
+
 	if !ok {
+		return 0, ErrVariableNotExists
+	}
+
+	ttl := v.getTTL()
+
+	if ttl > 0 && ttl < time.Now().UTC().UnixNano() {
+		rplx.variablesMx.Lock()
+		delete(rplx.variables, name)
+		rplx.variablesMx.Unlock()
+
 		return 0, ErrVariableNotExists
 	}
 
