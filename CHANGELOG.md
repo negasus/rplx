@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.0.4 (2019-07-22)
+
+- WIP
+
 ## v0.0.3 (2019-07-22)
 
 - add ttlStamp conception
