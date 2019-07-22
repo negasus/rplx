@@ -11,6 +11,7 @@ import (
 )
 
 var (
+	// ErrNodeAlreadyExists describe error for add already exists node
 	ErrNodeAlreadyExists = errors.New("node already exists")
 
 	defaultSendVariableToNodeTimeout = time.Millisecond * 500

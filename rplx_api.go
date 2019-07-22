@@ -6,10 +6,11 @@ import (
 )
 
 var (
+	// ErrVariableNotExists describe error for non exists variable
 	ErrVariableNotExists = errors.New("variable not exists")
 )
 
-// get returns variable v or error if variable not exists or expired
+// Get returns variable v or error if variable not exists or expired
 // if variable expired, removes variable from rplx.variables map
 func (rplx *Rplx) Get(name string) (int64, error) {
 	rplx.variablesMx.RLock()
@@ -53,6 +54,7 @@ func (rplx *Rplx) Delete(name string) error {
 	return nil
 }
 
+// UpdateTTL updates TTL for variable or return error if variable not exists
 func (rplx *Rplx) UpdateTTL(name string, ttl time.Time) error {
 	rplx.variablesMx.RLock()
 	defer rplx.variablesMx.RUnlock()
