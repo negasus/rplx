@@ -24,6 +24,7 @@ func (n *node) sync() error {
 
 		req.Variables[name] = &SyncVariable{
 			TTL:         v.getTTL(),
+			TTLStamp:    v.getTTLStamp(),
 			NodesValues: make(map[string]*SyncNodeValue),
 		}
 

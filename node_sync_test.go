@@ -35,6 +35,7 @@ func TestNode_Sync(t *testing.T) {
 		v, ok := in.Variables["var1"]
 		assert.True(t, ok)
 		assert.Equal(t, int64(100), v.TTL)
+		assert.True(t, v.TTLStamp > 0 && v.TTLStamp <= time.Now().UTC().UnixNano())
 		assert.Equal(t, 3, len(v.NodesValues))
 
 		n, ok = v.NodesValues["node1"]

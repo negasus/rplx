@@ -26,6 +26,11 @@ func (rplx *Rplx) Sync(ctx context.Context, mes *SyncRequest) (*SyncResponse, er
 			}
 			localVar.updateRemoteNode(nodeID, n.Value, n.Stamp)
 		}
+
+		if localVar.ttlStamp < v.TTL {
+			localVar.ttl = v.TTL
+			localVar.ttlStamp = v.TTLStamp
+		}
 	}
 
 	return &SyncResponse{Code: 0}, nil

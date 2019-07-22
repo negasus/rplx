@@ -12,7 +12,8 @@ type variable struct {
 	// variable value for current node
 	selfItem *variableItem
 
-	ttl int64
+	ttl      int64
+	ttlStamp int64
 
 	// variable values for remote nodes
 	// map key - is remove node ID
@@ -61,12 +62,17 @@ func (v *variable) getTTL() int64 {
 	return atomic.LoadInt64(&v.ttl)
 }
 
+func (v *variable) getTTLStamp() int64 {
+	return atomic.LoadInt64(&v.ttlStamp)
+}
+
 func (v *variable) update(delta int64) int64 {
 	return v.selfItem.update(delta)
 }
 
 func (v *variable) updateTTL(ttl time.Time) {
 	atomic.StoreInt64(&v.ttl, ttl.UnixNano())
+	atomic.StoreInt64(&v.ttlStamp, time.Now().UTC().UnixNano())
 }
 
 func (v *variable) updateRemoteNode(nodeID string, value, stamp int64) {
