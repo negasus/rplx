@@ -75,14 +75,18 @@ func TestVariable_Items(t *testing.T) {
 	assert.NotEqual(t, fmt.Sprintf("%p", item), fmt.Sprintf("%p", item3))
 }
 
-func TestReplicated(t *testing.T) {
+func TestVariable_Replicated(t *testing.T) {
 	v := newVariable("var1")
 
-	assert.False(t, v.isReplicated())
+	v.remoteItems["node2"] = &variableItem{}
 
-	v.replicatedOn()
-	assert.True(t, v.isReplicated())
+	assert.False(t, v.isReplicated("node1")) // not exists
 
-	v.replicatedOff()
-	assert.False(t, v.isReplicated())
+	assert.False(t, v.isReplicated("node2"))
+
+	v.replicatedOn("node2")
+	assert.True(t, v.isReplicated("node2"))
+
+	v.replicatedOff("node2")
+	assert.False(t, v.isReplicated("node2"))
 }

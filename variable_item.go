@@ -10,6 +10,19 @@ import (
 type variableItem struct {
 	v int64 // value
 	s int64 // last update stamp in UnixNano (UTC)
+	r int32 // replicated flag
+}
+
+func (item *variableItem) isReplicated() bool {
+	return atomic.LoadInt32(&item.r) == 1
+}
+
+func (item *variableItem) replicatedOn() {
+	atomic.StoreInt32(&item.r, 1)
+}
+
+func (item *variableItem) replicatedOff() {
+	atomic.StoreInt32(&item.r, 0)
 }
 
 func (item *variableItem) update(delta int64) int64 {

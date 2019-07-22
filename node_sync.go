@@ -20,6 +20,8 @@ func (n *node) sync() error {
 		Variables: make(map[string]*SyncVariable),
 	}
 
+	vars := make([]*variable, 0)
+
 	n.bufferMx.Lock()
 	for name, v := range n.buffer {
 
@@ -43,6 +45,8 @@ func (n *node) sync() error {
 			}
 		}
 
+		vars = append(vars, v)
+
 		delete(n.buffer, name)
 	}
 	n.bufferMx.Unlock()
@@ -59,6 +63,11 @@ func (n *node) sync() error {
 	if r.Code != syncCodeSuccess {
 		n.logger.Warn("error sync response code", zap.Int64("code", r.Code))
 		return fmt.Errorf("bad response code, %d", r.Code)
+	}
+
+	// mark variables as replicated
+	for _, v := range vars {
+		v.replicatedOn(n.ID)
 	}
 
 	return nil
