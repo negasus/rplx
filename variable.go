@@ -31,6 +31,19 @@ func newVariable(name string) *variable {
 	return v
 }
 
+// isReplicatedAll returns true, if all nodes are replicated
+func (v *variable) isReplicatedAll() bool {
+	v.remoteItemsMx.RLock()
+	defer v.remoteItemsMx.RUnlock()
+	for _, i := range v.remoteItems {
+		if !i.isReplicated() {
+			return false
+		}
+	}
+
+	return true
+}
+
 func (v *variable) isReplicated(nodeID string) bool {
 	v.remoteItemsMx.RLock()
 	defer v.remoteItemsMx.RUnlock()

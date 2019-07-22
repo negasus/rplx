@@ -89,4 +89,10 @@ func TestVariable_Replicated(t *testing.T) {
 
 	v.replicatedOff("node2")
 	assert.False(t, v.isReplicated("node2"))
+
+	v.remoteItems["node1"] = &variableItem{}
+	v.replicatedOn("node2")
+	assert.False(t, v.isReplicatedAll())
+	v.replicatedOn("node1")
+	assert.True(t, v.isReplicatedAll())
 }
