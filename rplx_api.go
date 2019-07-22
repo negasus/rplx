@@ -63,6 +63,9 @@ func (rplx *Rplx) UpdateTTL(name string, ttl time.Time) error {
 	}
 
 	v.updateTTL(ttl)
+
+	go rplx.sendToReplication(v)
+
 	return nil
 }
 
