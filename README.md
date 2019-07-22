@@ -75,6 +75,15 @@ value, _ := r1.get("var1")
 ### Delete
 // todo
 
+### UpdateTTL
+> `UpdateTTL(variableName string, TTL time.Time) error`
+
+Updates TTL for variable. Returns error `ErrVariableNotExists` if not exists 
+
+## Notes
+
+- call delete method on variable will set TTL in `Now - 1sec` for this variable
+
 ## ToDo
 
 - garbage expired variable

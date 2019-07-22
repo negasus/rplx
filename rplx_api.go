@@ -53,6 +53,19 @@ func (rplx *Rplx) Delete(name string) error {
 	return nil
 }
 
+func (rplx *Rplx) UpdateTTL(name string, ttl time.Time) error {
+	rplx.variablesMx.RLock()
+	defer rplx.variablesMx.RUnlock()
+
+	v, ok := rplx.variables[name]
+	if !ok {
+		return ErrVariableNotExists
+	}
+
+	v.updateTTL(ttl)
+	return nil
+}
+
 // Upsert change variable on delta or create variable, if not exists
 func (rplx *Rplx) Upsert(name string, delta int64) {
 	var v *variable

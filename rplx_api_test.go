@@ -100,3 +100,31 @@ func TestRplx_Upsert(t *testing.T) {
 	assert.True(t, ok)
 	assert.Equal(t, int64(300), v.selfItem.v)
 }
+
+func TestRplx_UpdateTTL_NotExists(t *testing.T) {
+	rplx := New("node1", zap.NewNop())
+
+	err := rplx.UpdateTTL("var1", time.Now())
+
+	assert.Error(t, err)
+	assert.Equal(t, ErrVariableNotExists, err)
+}
+
+func TestRplx_UpdateTTL(t *testing.T) {
+	rplx := New("node1", zap.NewNop())
+
+	t1 := time.Now().UTC().UnixNano()
+
+	v := newVariable("var1")
+	rplx.variables["var1"] = v
+
+	newTTL := time.Now().Add(time.Minute)
+	err := rplx.UpdateTTL("var1", newTTL)
+
+	t2 := time.Now().UTC().UnixNano()
+
+	assert.NoError(t, err)
+
+	assert.True(t, rplx.variables["var1"].ttlStamp >= t1 && rplx.variables["var1"].ttlStamp <= t2)
+	assert.Equal(t, newTTL.UnixNano(), rplx.variables["var1"].ttl)
+}
