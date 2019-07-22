@@ -10,8 +10,6 @@ import (
 // replication channel size
 var nodeChSize = 1024
 
-var defaultMaxBufferSize = 1024
-
 // node describe remote node
 type node struct {
 
@@ -36,7 +34,7 @@ type node struct {
 	syncInterval time.Duration
 }
 
-func newNode(localNodeID, remoteNodeID string, addr string, syncInterval time.Duration, logger *zap.Logger, opts grpc.DialOption) (*node, error) {
+func newNode(localNodeID, remoteNodeID string, addr string, syncInterval time.Duration, logger *zap.Logger, maxBufferSize int, opts grpc.DialOption) (*node, error) {
 	var err error
 
 	n := &node{
@@ -46,7 +44,7 @@ func newNode(localNodeID, remoteNodeID string, addr string, syncInterval time.Du
 		replicationChan: make(chan *variable, nodeChSize),
 		buffer:          make(map[string]*variable),
 		syncInterval:    syncInterval,
-		MaxBufferSize:   defaultMaxBufferSize,
+		MaxBufferSize:   maxBufferSize,
 	}
 
 	n.conn, err = grpc.Dial(addr, opts)

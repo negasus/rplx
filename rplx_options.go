@@ -24,3 +24,9 @@ func WithReplicationChanCap(c int) Option {
 		rplx.replicationChan = make(chan *variable, c)
 	}
 }
+
+func WithNodeMaxBufferSize(s int) Option {
+	return func(rplx *Rplx) {
+		rplx.nodeMaxBufferSize = s
+	}
+}

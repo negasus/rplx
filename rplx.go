@@ -18,6 +18,7 @@ var (
 	defaultGCInterval                = time.Second * 60
 	defaultLogger                    = zap.NewNop()
 	defaultReplicationChanCap        = 10240
+	defaultNodeMaxBufferSize         = 1024
 )
 
 // Rplx describe main Rplx object
@@ -33,18 +34,20 @@ type Rplx struct {
 	variablesMx sync.RWMutex
 	variables   map[string]*variable
 
-	gcInterval time.Duration
+	gcInterval        time.Duration
+	nodeMaxBufferSize int
 }
 
 // New creates new Rplx
 func New(nodeID string, opts ...Option) *Rplx {
 	r := &Rplx{
-		nodeID:          nodeID,
-		logger:          defaultLogger,
-		variables:       make(map[string]*variable),
-		replicationChan: make(chan *variable, defaultReplicationChanCap),
-		nodes:           make(map[string]*node),
-		gcInterval:      defaultGCInterval,
+		nodeID:            nodeID,
+		logger:            defaultLogger,
+		variables:         make(map[string]*variable),
+		replicationChan:   make(chan *variable, defaultReplicationChanCap),
+		nodes:             make(map[string]*node),
+		gcInterval:        defaultGCInterval,
+		nodeMaxBufferSize: defaultNodeMaxBufferSize,
 	}
 
 	for _, o := range opts {
@@ -80,7 +83,7 @@ func (rplx *Rplx) AddNode(nodeID string, addr string, syncInterval time.Duration
 		return ErrNodeAlreadyExists
 	}
 
-	n, err := newNode(rplx.nodeID, nodeID, addr, syncInterval, rplx.logger, opts)
+	n, err := newNode(rplx.nodeID, nodeID, addr, syncInterval, rplx.logger, rplx.nodeMaxBufferSize, opts)
 	if err != nil {
 		return errors.Wrap(err, "error create node")
 	}
