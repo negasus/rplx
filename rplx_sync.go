@@ -20,8 +20,7 @@ func (rplx *Rplx) Sync(ctx context.Context, mes *SyncRequest) (*SyncResponse, er
 		}
 
 		for nodeID, n := range v.NodesValues {
-			// Если в пришедшем запросе мы получили наш nodeID, то пропускем. Предполагаем, что у нас всегда данные самые свежие
-			// todo: может при отправке на конкретную ноду - не отправлять ее данные? Добавить эту проверку в node.sync()?
+			// if got data for current node, skip it
 			if nodeID == rplx.nodeID {
 				continue
 			}
