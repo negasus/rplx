@@ -14,12 +14,13 @@ var (
 	// ErrNodeAlreadyExists describe error for add already exists node
 	ErrNodeAlreadyExists = errors.New("node already exists")
 
-	defaultSendVariableToNodeTimeout = time.Millisecond * 500
-	defaultSendToReplicationTimeout  = time.Millisecond * 500
-	defaultGCInterval                = time.Second * 60
-	defaultLogger                    = zap.NewNop()
-	defaultReplicationChanCap        = 10240
-	defaultNodeMaxBufferSize         = 1024
+	defaultSendVariableToNodeTimeout   = time.Millisecond * 500
+	defaultSendToReplicationTimeout    = time.Millisecond * 500
+	defaultGCInterval                  = time.Second * 60
+	defaultLogger                      = zap.NewNop()
+	defaultReplicationChanCap          = 10240
+	defaultNodeMaxBufferSize           = 1024
+	defaultByTickerReplicationInterval = time.Minute
 )
 
 // Rplx describe main Rplx object
@@ -37,22 +38,31 @@ type Rplx struct {
 
 	gcInterval        time.Duration
 	nodeMaxBufferSize int
+
+	runByTickerReplication      bool
+	byTickerReplicationInterval time.Duration
 }
 
 // New creates new Rplx
 func New(nodeID string, opts ...Option) *Rplx {
 	r := &Rplx{
-		nodeID:            nodeID,
-		logger:            defaultLogger,
-		variables:         make(map[string]*variable),
-		replicationChan:   make(chan *variable, defaultReplicationChanCap),
-		nodes:             make(map[string]*node),
-		gcInterval:        defaultGCInterval,
-		nodeMaxBufferSize: defaultNodeMaxBufferSize,
+		nodeID:                      nodeID,
+		logger:                      defaultLogger,
+		variables:                   make(map[string]*variable),
+		replicationChan:             make(chan *variable, defaultReplicationChanCap),
+		nodes:                       make(map[string]*node),
+		gcInterval:                  defaultGCInterval,
+		nodeMaxBufferSize:           defaultNodeMaxBufferSize,
+		runByTickerReplication:      false,
+		byTickerReplicationInterval: defaultByTickerReplicationInterval,
 	}
 
 	for _, o := range opts {
 		o(r)
+	}
+
+	if r.runByTickerReplication {
+		go r.byTickerReplication()
 	}
 
 	go r.listenReplicationChannel()
@@ -111,9 +121,26 @@ func (rplx *Rplx) listenReplicationChannel() {
 	for v := range rplx.replicationChan {
 		rplx.nodesMx.RLock()
 		for nodeID, node := range rplx.nodes {
+			// todo check isReplicated for node
 			go rplx.sendVariableToNode(v, nodeID, node)
 		}
 		rplx.nodesMx.RUnlock()
+	}
+}
+
+func (rplx *Rplx) byTickerReplication() {
+	t := time.NewTicker(rplx.byTickerReplicationInterval)
+
+	for range t.C {
+		rplx.variablesMx.RLock()
+		for _, v := range rplx.variables {
+			if v.isReplicatedAll() {
+				continue
+			}
+			go rplx.sendToReplication(v)
+		}
+
+		rplx.variablesMx.RUnlock()
 	}
 }
 

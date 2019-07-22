@@ -35,3 +35,17 @@ func WithNodeMaxBufferSize(s int) Option {
 		rplx.nodeMaxBufferSize = s
 	}
 }
+
+// WithByTickerReplication option for run background by ticker replication
+func WithByTickerReplication() Option {
+	return func(rplx *Rplx) {
+		rplx.runByTickerReplication = true
+	}
+}
+
+// WithByTickerReplicationInterval option for set by ticker replication interval
+func WithByTickerReplicationInterval(i time.Duration) Option {
+	return func(rplx *Rplx) {
+		rplx.byTickerReplicationInterval = i
+	}
+}
