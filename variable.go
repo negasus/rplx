@@ -19,6 +19,8 @@ type variable struct {
 	// map key - is remove node ID
 	remoteItemsMx sync.RWMutex
 	remoteItems   map[string]*variableItem
+
+	replicated int32
 }
 
 func newVariable(name string) *variable {
@@ -29,6 +31,18 @@ func newVariable(name string) *variable {
 	}
 
 	return v
+}
+
+func (v *variable) isReplicated() bool {
+	return atomic.LoadInt32(&v.replicated) == 1
+}
+
+func (v *variable) replicatedOn() {
+	atomic.StoreInt32(&v.replicated, 1)
+}
+
+func (v *variable) replicatedOff() {
+	atomic.StoreInt32(&v.replicated, 0)
 }
 
 // get returns variable value

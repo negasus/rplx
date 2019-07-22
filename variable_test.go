@@ -74,3 +74,15 @@ func TestVariable_Items(t *testing.T) {
 	assert.Equal(t, item3.s, item.s)
 	assert.NotEqual(t, fmt.Sprintf("%p", item), fmt.Sprintf("%p", item3))
 }
+
+func TestReplicated(t *testing.T) {
+	v := newVariable("var1")
+
+	assert.False(t, v.isReplicated())
+
+	v.replicatedOn()
+	assert.True(t, v.isReplicated())
+
+	v.replicatedOff()
+	assert.False(t, v.isReplicated())
+}
