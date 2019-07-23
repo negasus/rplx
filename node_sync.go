@@ -65,9 +65,9 @@ func (n *node) sync() error {
 		return fmt.Errorf("bad response code, %d", r.Code)
 	}
 
-	// mark variables as replicated
+	// mark variables as replicated for this node
 	for _, v := range vars {
-		v.replicatedOn(n.ID)
+		v.updateReplicationStamp(n.ID)
 	}
 
 	return nil
