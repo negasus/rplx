@@ -41,6 +41,8 @@ type Rplx struct {
 
 	runByTickerReplication      bool
 	byTickerReplicationInterval time.Duration
+
+	readOnly bool
 }
 
 // New creates new Rplx
@@ -109,6 +111,10 @@ func (rplx *Rplx) AddNode(nodeID string, addr string, syncInterval time.Duration
 // sendToReplication send variable to replication channel
 // if reached timeout defaultSendToReplicationTimeout while send, log error
 func (rplx *Rplx) sendToReplication(v *variable) {
+	if rplx.readOnly {
+		return
+	}
+
 	select {
 	case rplx.replicationChan <- v:
 	case <-time.After(defaultSendToReplicationTimeout):

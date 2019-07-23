@@ -49,3 +49,10 @@ func WithByTickerReplicationInterval(i time.Duration) Option {
 		rplx.byTickerReplicationInterval = i
 	}
 }
+
+// WithReadOnly option sets read only mode
+func WithReadOnly() Option {
+	return func(rplx *Rplx) {
+		rplx.readOnly = true
+	}
+}

@@ -31,6 +31,10 @@ func (rplx *Rplx) Sync(ctx context.Context, mes *SyncRequest) (*SyncResponse, er
 			localVar.ttl = v.TTL
 			localVar.ttlStamp = v.TTLStamp
 		}
+
+		if !localVar.isReplicatedAll() {
+			go rplx.sendToReplication(localVar)
+		}
 	}
 
 	return &SyncResponse{Code: 0}, nil
