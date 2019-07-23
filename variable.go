@@ -33,6 +33,10 @@ func newVariable(name string) *variable {
 
 // isReplicatedAll returns true, if all nodes are replicated
 func (v *variable) isReplicatedAll() bool {
+	if !v.selfItem.isReplicated() {
+		return false
+	}
+
 	v.remoteItemsMx.RLock()
 	defer v.remoteItemsMx.RUnlock()
 	for _, i := range v.remoteItems {
@@ -45,6 +49,10 @@ func (v *variable) isReplicatedAll() bool {
 }
 
 func (v *variable) isReplicated(nodeID string) bool {
+	if nodeID == "" {
+		return v.selfItem.isReplicated()
+	}
+
 	v.remoteItemsMx.RLock()
 	defer v.remoteItemsMx.RUnlock()
 
@@ -57,6 +65,11 @@ func (v *variable) isReplicated(nodeID string) bool {
 }
 
 func (v *variable) replicatedOn(nodeID string) {
+	if nodeID == "" {
+		v.selfItem.replicatedOn()
+		return
+	}
+
 	v.remoteItemsMx.RLock()
 	defer v.remoteItemsMx.RUnlock()
 
@@ -69,6 +82,11 @@ func (v *variable) replicatedOn(nodeID string) {
 }
 
 func (v *variable) replicatedOff(nodeID string) {
+	if nodeID == "" {
+		v.selfItem.replicatedOff()
+		return
+	}
+
 	v.remoteItemsMx.RLock()
 	defer v.remoteItemsMx.RUnlock()
 
@@ -137,5 +155,6 @@ func (v *variable) updateRemoteNode(nodeID string, value, stamp int64) {
 	if i.stamp() < stamp {
 		i.setValue(value)
 		i.setStamp(stamp)
+		i.replicatedOff()
 	}
 }

@@ -81,8 +81,8 @@ func TestVariable_Replicated(t *testing.T) {
 	v.remoteItems["node2"] = &variableItem{}
 
 	assert.False(t, v.isReplicated("node1")) // not exists
-
 	assert.False(t, v.isReplicated("node2"))
+	assert.False(t, v.isReplicated("")) // self
 
 	v.replicatedOn("node2")
 	assert.True(t, v.isReplicated("node2"))
@@ -91,8 +91,10 @@ func TestVariable_Replicated(t *testing.T) {
 	assert.False(t, v.isReplicated("node2"))
 
 	v.remoteItems["node1"] = &variableItem{}
-	v.replicatedOn("node2")
-	assert.False(t, v.isReplicatedAll())
+
+	v.replicatedOn("")
 	v.replicatedOn("node1")
+	v.replicatedOn("node2")
+
 	assert.True(t, v.isReplicatedAll())
 }
