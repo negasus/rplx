@@ -71,11 +71,17 @@ func (v *variable) updateReplicationStamp(nodeID string) {
 	}
 
 	v.remoteItemsMx.RLock()
-	defer v.remoteItemsMx.RUnlock()
-
 	i, ok := v.remoteItems[nodeID]
+	v.remoteItemsMx.RUnlock()
+
 	if !ok {
-		return
+		v.remoteItemsMx.Lock()
+		i, ok = v.remoteItems[nodeID]
+		if !ok {
+			i = newVariableItem()
+			v.remoteItems[nodeID] = i
+		}
+		v.remoteItemsMx.Unlock()
 	}
 
 	i.updateReplicationStamp()
