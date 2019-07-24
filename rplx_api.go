@@ -8,6 +8,8 @@ import (
 var (
 	// ErrVariableNotExists describe error for non exists variable
 	ErrVariableNotExists = errors.New("variable not exists")
+	// ErrTTLLessThanNow describe error for func UpdateTTL
+	ErrTTLLessThanNow = errors.New("TTL less than Now")
 )
 
 // Get returns variable v or error if variable not exists or expired
@@ -56,6 +58,11 @@ func (rplx *Rplx) Delete(name string) error {
 
 // UpdateTTL updates TTL for variable or return error if variable not exists
 func (rplx *Rplx) UpdateTTL(name string, ttl time.Time) error {
+
+	if ttl.Before(time.Now().UTC()) {
+		return ErrTTLLessThanNow
+	}
+
 	rplx.variablesMx.RLock()
 	defer rplx.variablesMx.RUnlock()
 

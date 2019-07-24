@@ -127,3 +127,12 @@ func TestRplx_UpdateTTL(t *testing.T) {
 	assert.True(t, rplx.variables["var1"].ttlStamp >= t1 && rplx.variables["var1"].ttlStamp <= t2)
 	assert.Equal(t, newTTL.UnixNano(), rplx.variables["var1"].ttl)
 }
+
+func TestRplx_UpdateTTL_BadTLL(t *testing.T) {
+	rplx := New("node1")
+
+	err := rplx.UpdateTTL("var1", time.Now().UTC().Add(-time.Second))
+
+	assert.Error(t, err)
+	assert.Equal(t, ErrTTLLessThanNow, err)
+}
