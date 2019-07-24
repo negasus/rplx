@@ -103,7 +103,7 @@ func TestRplx_Upsert(t *testing.T) {
 func TestRplx_UpdateTTL_NotExists(t *testing.T) {
 	rplx := New("node1")
 
-	err := rplx.UpdateTTL("var1", time.Now())
+	err := rplx.UpdateTTL("var1", time.Now().Add(time.Second))
 
 	assert.Error(t, err)
 	assert.Equal(t, ErrVariableNotExists, err)
