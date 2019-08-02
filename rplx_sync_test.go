@@ -20,7 +20,6 @@ func TestRplx_Sync(t *testing.T) {
 		Variables: map[string]*SyncVariable{
 			"var1": {NodesValues: map[string]*SyncNodeValue{
 				"node3": {
-					ID:    "node3",
 					Value: 300,
 					Stamp: 300,
 				},

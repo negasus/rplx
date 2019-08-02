@@ -32,14 +32,12 @@ func (n *node) sync() error {
 		}
 
 		req.Variables[name].NodesValues[n.localNodeID] = &SyncNodeValue{
-			ID:    n.localNodeID,
 			Value: v.selfItem.value(),
 			Stamp: v.selfItem.stamp(),
 		}
 
 		for nodeID, item := range v.items() {
 			req.Variables[name].NodesValues[nodeID] = &SyncNodeValue{
-				ID:    nodeID,
 				Value: item.value(),
 				Stamp: item.stamp(),
 			}

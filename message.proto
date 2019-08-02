@@ -3,9 +3,8 @@ syntax = "proto3";
 package rplx;
 
 message SyncNodeValue {
-    string ID = 1;
-    int64 Value = 2;
-    int64 Stamp = 3;
+    int64 Value = 1;
+    int64 Stamp = 2;
 }
 
 message SyncVariable {

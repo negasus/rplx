@@ -21,10 +21,6 @@ func (rplx *Rplx) Sync(ctx context.Context, mes *SyncRequest) (*SyncResponse, er
 		updated := false
 
 		for nodeID, n := range v.NodesValues {
-			// if got data for current node, skip it
-			if nodeID == rplx.nodeID {
-				continue
-			}
 			if localVar.updateRemoteNode(nodeID, n.Value, n.Stamp) {
 				updated = true
 			}
