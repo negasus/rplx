@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.2.0 (2019-08-09)
+
+- massive refactoring
+
 ## v0.1.0 (2019-07-23)
 
 - minor release
