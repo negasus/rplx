@@ -25,7 +25,7 @@ const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
 type SyncNodeValue struct {
 	Value                int64    `protobuf:"varint,1,opt,name=Value,proto3" json:"Value,omitempty"`
-	Stamp                int64    `protobuf:"varint,2,opt,name=Stamp,proto3" json:"Stamp,omitempty"`
+	Version              int64    `protobuf:"varint,2,opt,name=Version,proto3" json:"Version,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -35,7 +35,7 @@ func (m *SyncNodeValue) Reset()         { *m = SyncNodeValue{} }
 func (m *SyncNodeValue) String() string { return proto.CompactTextString(m) }
 func (*SyncNodeValue) ProtoMessage()    {}
 func (*SyncNodeValue) Descriptor() ([]byte, []int) {
-	return fileDescriptor_message_8096b1e50141cb19, []int{0}
+	return fileDescriptor_message_e443170929639c88, []int{0}
 }
 func (m *SyncNodeValue) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SyncNodeValue.Unmarshal(m, b)
@@ -62,9 +62,9 @@ func (m *SyncNodeValue) GetValue() int64 {
 	return 0
 }
 
-func (m *SyncNodeValue) GetStamp() int64 {
+func (m *SyncNodeValue) GetVersion() int64 {
 	if m != nil {
-		return m.Stamp
+		return m.Version
 	}
 	return 0
 }
@@ -73,7 +73,7 @@ type SyncVariable struct {
 	// map key - nodeID
 	NodesValues          map[string]*SyncNodeValue `protobuf:"bytes,1,rep,name=NodesValues,proto3" json:"NodesValues,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	TTL                  int64                     `protobuf:"varint,2,opt,name=TTL,proto3" json:"TTL,omitempty"`
-	TTLStamp             int64                     `protobuf:"varint,3,opt,name=TTLStamp,proto3" json:"TTLStamp,omitempty"`
+	TTLVersion           int64                     `protobuf:"varint,3,opt,name=TTLVersion,proto3" json:"TTLVersion,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                  `json:"-"`
 	XXX_unrecognized     []byte                    `json:"-"`
 	XXX_sizecache        int32                     `json:"-"`
@@ -83,7 +83,7 @@ func (m *SyncVariable) Reset()         { *m = SyncVariable{} }
 func (m *SyncVariable) String() string { return proto.CompactTextString(m) }
 func (*SyncVariable) ProtoMessage()    {}
 func (*SyncVariable) Descriptor() ([]byte, []int) {
-	return fileDescriptor_message_8096b1e50141cb19, []int{1}
+	return fileDescriptor_message_e443170929639c88, []int{1}
 }
 func (m *SyncVariable) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SyncVariable.Unmarshal(m, b)
@@ -117,9 +117,9 @@ func (m *SyncVariable) GetTTL() int64 {
 	return 0
 }
 
-func (m *SyncVariable) GetTTLStamp() int64 {
+func (m *SyncVariable) GetTTLVersion() int64 {
 	if m != nil {
-		return m.TTLStamp
+		return m.TTLVersion
 	}
 	return 0
 }
@@ -137,7 +137,7 @@ func (m *SyncRequest) Reset()         { *m = SyncRequest{} }
 func (m *SyncRequest) String() string { return proto.CompactTextString(m) }
 func (*SyncRequest) ProtoMessage()    {}
 func (*SyncRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_message_8096b1e50141cb19, []int{2}
+	return fileDescriptor_message_e443170929639c88, []int{2}
 }
 func (m *SyncRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SyncRequest.Unmarshal(m, b)
@@ -182,7 +182,7 @@ func (m *SyncResponse) Reset()         { *m = SyncResponse{} }
 func (m *SyncResponse) String() string { return proto.CompactTextString(m) }
 func (*SyncResponse) ProtoMessage()    {}
 func (*SyncResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_message_8096b1e50141cb19, []int{3}
+	return fileDescriptor_message_e443170929639c88, []int{3}
 }
 func (m *SyncResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SyncResponse.Unmarshal(m, b)
@@ -209,6 +209,74 @@ func (m *SyncResponse) GetCode() int64 {
 	return 0
 }
 
+type HelloRequest struct {
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *HelloRequest) Reset()         { *m = HelloRequest{} }
+func (m *HelloRequest) String() string { return proto.CompactTextString(m) }
+func (*HelloRequest) ProtoMessage()    {}
+func (*HelloRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_message_e443170929639c88, []int{4}
+}
+func (m *HelloRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_HelloRequest.Unmarshal(m, b)
+}
+func (m *HelloRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_HelloRequest.Marshal(b, m, deterministic)
+}
+func (dst *HelloRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_HelloRequest.Merge(dst, src)
+}
+func (m *HelloRequest) XXX_Size() int {
+	return xxx_messageInfo_HelloRequest.Size(m)
+}
+func (m *HelloRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_HelloRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_HelloRequest proto.InternalMessageInfo
+
+type HelloResponse struct {
+	ID                   string   `protobuf:"bytes,1,opt,name=remoteNodeID,proto3" json:"remoteNodeID,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *HelloResponse) Reset()         { *m = HelloResponse{} }
+func (m *HelloResponse) String() string { return proto.CompactTextString(m) }
+func (*HelloResponse) ProtoMessage()    {}
+func (*HelloResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_message_e443170929639c88, []int{5}
+}
+func (m *HelloResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_HelloResponse.Unmarshal(m, b)
+}
+func (m *HelloResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_HelloResponse.Marshal(b, m, deterministic)
+}
+func (dst *HelloResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_HelloResponse.Merge(dst, src)
+}
+func (m *HelloResponse) XXX_Size() int {
+	return xxx_messageInfo_HelloResponse.Size(m)
+}
+func (m *HelloResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_HelloResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_HelloResponse proto.InternalMessageInfo
+
+func (m *HelloResponse) GetID() string {
+	if m != nil {
+		return m.ID
+	}
+	return ""
+}
+
 func init() {
 	proto.RegisterType((*SyncNodeValue)(nil), "rplx.SyncNodeValue")
 	proto.RegisterType((*SyncVariable)(nil), "rplx.SyncVariable")
@@ -216,6 +284,8 @@ func init() {
 	proto.RegisterType((*SyncRequest)(nil), "rplx.SyncRequest")
 	proto.RegisterMapType((map[string]*SyncVariable)(nil), "rplx.SyncRequest.VariablesEntry")
 	proto.RegisterType((*SyncResponse)(nil), "rplx.SyncResponse")
+	proto.RegisterType((*HelloRequest)(nil), "rplx.HelloRequest")
+	proto.RegisterType((*HelloResponse)(nil), "rplx.HelloResponse")
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -230,6 +300,7 @@ const _ = grpc.SupportPackageIsVersion4
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type ReplicatorClient interface {
+	Hello(ctx context.Context, in *HelloRequest, opts ...grpc.CallOption) (*HelloResponse, error)
 	Sync(ctx context.Context, in *SyncRequest, opts ...grpc.CallOption) (*SyncResponse, error)
 }
 
@@ -239,6 +310,15 @@ type replicatorClient struct {
 
 func NewReplicatorClient(cc *grpc.ClientConn) ReplicatorClient {
 	return &replicatorClient{cc}
+}
+
+func (c *replicatorClient) Hello(ctx context.Context, in *HelloRequest, opts ...grpc.CallOption) (*HelloResponse, error) {
+	out := new(HelloResponse)
+	err := c.cc.Invoke(ctx, "/rplx.Replicator/Hello", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *replicatorClient) Sync(ctx context.Context, in *SyncRequest, opts ...grpc.CallOption) (*SyncResponse, error) {
@@ -252,11 +332,30 @@ func (c *replicatorClient) Sync(ctx context.Context, in *SyncRequest, opts ...gr
 
 // ReplicatorServer is the server API for Replicator service.
 type ReplicatorServer interface {
+	Hello(context.Context, *HelloRequest) (*HelloResponse, error)
 	Sync(context.Context, *SyncRequest) (*SyncResponse, error)
 }
 
 func RegisterReplicatorServer(s *grpc.Server, srv ReplicatorServer) {
 	s.RegisterService(&_Replicator_serviceDesc, srv)
+}
+
+func _Replicator_Hello_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(HelloRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ReplicatorServer).Hello(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/rplx.Replicator/Hello",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ReplicatorServer).Hello(ctx, req.(*HelloRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _Replicator_Sync_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -282,6 +381,10 @@ var _Replicator_serviceDesc = grpc.ServiceDesc{
 	HandlerType: (*ReplicatorServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
+			MethodName: "Hello",
+			Handler:    _Replicator_Hello_Handler,
+		},
+		{
 			MethodName: "Sync",
 			Handler:    _Replicator_Sync_Handler,
 		},
@@ -290,29 +393,31 @@ var _Replicator_serviceDesc = grpc.ServiceDesc{
 	Metadata: "message.proto",
 }
 
-func init() { proto.RegisterFile("message.proto", fileDescriptor_message_8096b1e50141cb19) }
+func init() { proto.RegisterFile("message.proto", fileDescriptor_message_e443170929639c88) }
 
-var fileDescriptor_message_8096b1e50141cb19 = []byte{
-	// 322 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x6c, 0x52, 0xc1, 0x4e, 0x83, 0x40,
-	0x14, 0x74, 0x4b, 0xdb, 0xd8, 0x87, 0x35, 0xf5, 0x69, 0x0c, 0xe1, 0xd4, 0xe0, 0x05, 0x2f, 0x98,
-	0xe0, 0xc5, 0x68, 0xf4, 0xa2, 0x3d, 0x98, 0x34, 0xc6, 0x2c, 0xa4, 0xf7, 0x6d, 0xbb, 0x31, 0x8d,
-	0x94, 0x45, 0x96, 0x1a, 0xf9, 0x32, 0x7f, 0xc5, 0xcf, 0x31, 0xbb, 0x4b, 0x81, 0x5a, 0x6f, 0xef,
-	0xcd, 0xce, 0xcc, 0xce, 0xb0, 0xc0, 0x70, 0xcd, 0xa5, 0x64, 0x6f, 0x3c, 0xc8, 0x72, 0x51, 0x08,
-	0xec, 0xe6, 0x59, 0xf2, 0xe5, 0xdd, 0xc1, 0x30, 0x2a, 0xd3, 0xc5, 0x8b, 0x58, 0xf2, 0x19, 0x4b,
-	0x36, 0x1c, 0xcf, 0xa0, 0xa7, 0x07, 0x87, 0x8c, 0x89, 0x6f, 0xd1, 0x5e, 0x8d, 0x46, 0x05, 0x5b,
-	0x67, 0x4e, 0xc7, 0xa0, 0x7a, 0xf1, 0x7e, 0x08, 0x1c, 0x29, 0xf5, 0x8c, 0xe5, 0x2b, 0x36, 0x4f,
-	0x38, 0x4e, 0xc0, 0x56, 0x4e, 0x52, 0x8b, 0xa4, 0x43, 0xc6, 0x96, 0x6f, 0x87, 0x17, 0x81, 0xba,
-	0x29, 0x68, 0x13, 0x83, 0x16, 0x6b, 0x92, 0x16, 0x79, 0x49, 0xdb, 0x3a, 0x1c, 0x81, 0x15, 0xc7,
-	0xd3, 0xea, 0x2e, 0x35, 0xa2, 0x0b, 0x87, 0x71, 0x3c, 0x35, 0x11, 0x2c, 0x0d, 0xd7, 0xbb, 0x1b,
-	0xc1, 0xe8, 0xaf, 0x9d, 0x72, 0x78, 0xe7, 0xa5, 0xee, 0x30, 0xa0, 0x6a, 0xc4, 0x4b, 0xe8, 0x7d,
-	0xea, 0x5e, 0xca, 0xd5, 0x0e, 0x4f, 0x9b, 0x50, 0x75, 0x77, 0x6a, 0x18, 0xb7, 0x9d, 0x1b, 0xe2,
-	0x7d, 0x13, 0xb0, 0xd5, 0x21, 0xe5, 0x1f, 0x1b, 0x2e, 0x0b, 0x3c, 0x87, 0xbe, 0xe2, 0x3d, 0x3f,
-	0x55, 0x9e, 0xd5, 0x86, 0x0f, 0x30, 0xd8, 0x96, 0x92, 0x4e, 0x47, 0xf7, 0x1d, 0x37, 0xd6, 0x95,
-	0x3a, 0xa8, 0x29, 0xa6, 0x6c, 0x23, 0x71, 0x5f, 0xe1, 0x78, 0xf7, 0xf0, 0x9f, 0xe8, 0xfe, 0x6e,
-	0x74, 0xdc, 0xff, 0x9e, 0xed, 0xe4, 0x9e, 0x79, 0x13, 0xca, 0x65, 0x26, 0x52, 0xc9, 0x11, 0xa1,
-	0xfb, 0x28, 0x96, 0xdb, 0xf7, 0xd4, 0x73, 0x78, 0x0f, 0x40, 0x79, 0x96, 0xac, 0x16, 0xac, 0x10,
-	0x39, 0x5e, 0x41, 0x57, 0x29, 0xf0, 0x64, 0x2f, 0xb8, 0x8b, 0x6d, 0xc8, 0x18, 0x7a, 0x07, 0xf3,
-	0xbe, 0xfe, 0x83, 0xae, 0x7f, 0x03, 0x00, 0x00, 0xff, 0xff, 0xb9, 0x25, 0x6c, 0x4c, 0x52, 0x02,
-	0x00, 0x00,
+var fileDescriptor_message_e443170929639c88 = []byte{
+	// 363 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x6c, 0x52, 0xcd, 0x4e, 0xf2, 0x40,
+	0x14, 0xfd, 0xda, 0x02, 0x5f, 0xb8, 0x05, 0x82, 0x17, 0x63, 0x9a, 0x2e, 0x94, 0x8c, 0x1b, 0xdc,
+	0xd4, 0xa4, 0x6e, 0x8c, 0x0b, 0x5d, 0x08, 0x89, 0x24, 0xc4, 0x98, 0xa1, 0x61, 0x5f, 0x60, 0x62,
+	0x88, 0xb5, 0x53, 0x3a, 0xc5, 0xc8, 0x93, 0xf9, 0x32, 0x3e, 0x8c, 0x99, 0xe9, 0x14, 0x06, 0x71,
+	0x77, 0x7f, 0xce, 0x39, 0x3d, 0xe7, 0x4e, 0xa1, 0xfd, 0xce, 0x84, 0x88, 0x5f, 0x59, 0x90, 0xe5,
+	0xbc, 0xe0, 0x58, 0xcb, 0xb3, 0xe4, 0x93, 0x3c, 0x40, 0x7b, 0xba, 0x4d, 0x17, 0xcf, 0x7c, 0xc9,
+	0x66, 0x71, 0xb2, 0x61, 0x78, 0x0a, 0x75, 0x55, 0x78, 0x56, 0xdf, 0x1a, 0x38, 0xb4, 0x6c, 0xd0,
+	0x83, 0xff, 0x33, 0x96, 0x8b, 0x15, 0x4f, 0x3d, 0x5b, 0xcd, 0xab, 0x96, 0x7c, 0x5b, 0xd0, 0x92,
+	0x0a, 0xb3, 0x38, 0x5f, 0xc5, 0xf3, 0x84, 0xe1, 0x08, 0x5c, 0xa9, 0x26, 0x14, 0x51, 0x78, 0x56,
+	0xdf, 0x19, 0xb8, 0xe1, 0x65, 0x20, 0xbf, 0x16, 0x98, 0xc0, 0xc0, 0x40, 0x8d, 0xd2, 0x22, 0xdf,
+	0x52, 0x93, 0x87, 0x5d, 0x70, 0xa2, 0x68, 0xa2, 0xbf, 0x26, 0x4b, 0x3c, 0x07, 0x88, 0xa2, 0x49,
+	0x65, 0xc3, 0x51, 0x0b, 0x63, 0xe2, 0x4f, 0xa1, 0xfb, 0x5b, 0x52, 0xaa, 0xbc, 0xb1, 0xad, 0xca,
+	0xd2, 0xa4, 0xb2, 0xc4, 0x2b, 0xa8, 0x7f, 0xa8, 0x7c, 0x52, 0xd9, 0x0d, 0x7b, 0x7b, 0x63, 0xbb,
+	0x1b, 0xd0, 0x12, 0x71, 0x67, 0xdf, 0x5a, 0xe4, 0xcb, 0x02, 0x57, 0x2e, 0x29, 0x5b, 0x6f, 0x98,
+	0x28, 0xf0, 0x0c, 0x1a, 0x12, 0x37, 0x1e, 0x6a, 0x4d, 0xdd, 0xe1, 0x3d, 0x34, 0xab, 0x60, 0xc2,
+	0xb3, 0x55, 0xe6, 0xfe, 0x5e, 0x5a, 0xb3, 0x83, 0x1d, 0xa4, 0x0c, 0xbc, 0xa7, 0xf8, 0x2f, 0xd0,
+	0x39, 0x5c, 0xfe, 0x61, 0x7d, 0x70, 0x68, 0x1d, 0x8f, 0x6f, 0x6a, 0x3a, 0x27, 0xe5, 0xbb, 0x50,
+	0x26, 0x32, 0x9e, 0x0a, 0x86, 0x08, 0xb5, 0x47, 0xbe, 0xac, 0xde, 0x55, 0xd5, 0xa4, 0x03, 0xad,
+	0x27, 0x96, 0x24, 0x5c, 0xfb, 0x23, 0x17, 0xd0, 0xd6, 0xbd, 0x26, 0x75, 0xc0, 0xde, 0x45, 0xb5,
+	0xc7, 0xc3, 0x70, 0x0d, 0x40, 0x59, 0x96, 0xac, 0x16, 0x71, 0xc1, 0x73, 0x0c, 0xa1, 0xae, 0xe0,
+	0xa8, 0xad, 0x98, 0x5a, 0x7e, 0xef, 0x60, 0x56, 0xea, 0x91, 0x7f, 0x78, 0x0d, 0x35, 0x69, 0x0b,
+	0x4f, 0x8e, 0xae, 0xe3, 0xa3, 0x39, 0xaa, 0x08, 0xf3, 0x86, 0xfa, 0x5d, 0x6f, 0x7e, 0x02, 0x00,
+	0x00, 0xff, 0xff, 0x8f, 0xb8, 0xcd, 0x4e, 0xbf, 0x02, 0x00, 0x00,
 }

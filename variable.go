@@ -10,13 +10,13 @@ type variable struct {
 	name string
 
 	// variable value for current node
-	selfItem *variableItem
+	self *variableItem
 
-	ttl      int64
-	ttlStamp int64
+	ttl        int64
+	ttlVersion int64
 
 	// variable values for remote nodes
-	// map key - is remove node ID
+	// map key - is remove node remoteNodeID
 	remoteItemsMx sync.RWMutex
 	remoteItems   map[string]*variableItem
 }
@@ -24,72 +24,16 @@ type variable struct {
 func newVariable(name string) *variable {
 	v := &variable{
 		name:        name,
-		selfItem:    newVariableItem(),
+		self:        newVariableItem(),
 		remoteItems: make(map[string]*variableItem),
 	}
 
 	return v
 }
 
-// isReplicatedAll returns true, if all nodes are replicated
-func (v *variable) isReplicatedAll() bool {
-	if !v.selfItem.isReplicated() {
-		return false
-	}
-
-	v.remoteItemsMx.RLock()
-	defer v.remoteItemsMx.RUnlock()
-	for _, i := range v.remoteItems {
-		if !i.isReplicated() {
-			return false
-		}
-	}
-
-	return true
-}
-
-func (v *variable) isReplicated(nodeID string) bool {
-	if nodeID == "" {
-		return v.selfItem.isReplicated()
-	}
-
-	v.remoteItemsMx.RLock()
-	defer v.remoteItemsMx.RUnlock()
-
-	i, ok := v.remoteItems[nodeID]
-	if !ok {
-		return false
-	}
-
-	return i.isReplicated()
-}
-
-func (v *variable) updateReplicationStamp(nodeID string) {
-	if nodeID == "" {
-		v.selfItem.updateReplicationStamp()
-		return
-	}
-
-	v.remoteItemsMx.RLock()
-	i, ok := v.remoteItems[nodeID]
-	v.remoteItemsMx.RUnlock()
-
-	if !ok {
-		v.remoteItemsMx.Lock()
-		i, ok = v.remoteItems[nodeID]
-		if !ok {
-			i = newVariableItem()
-			v.remoteItems[nodeID] = i
-		}
-		v.remoteItemsMx.Unlock()
-	}
-
-	i.updateReplicationStamp()
-}
-
 // get returns variable value
-func (v *variable) get() (int64, error) {
-	result := v.selfItem.value()
+func (v *variable) get() int64 {
+	result := v.self.value()
 
 	v.remoteItemsMx.RLock()
 	for _, item := range v.remoteItems {
@@ -97,42 +41,29 @@ func (v *variable) get() (int64, error) {
 	}
 	v.remoteItemsMx.RUnlock()
 
-	return result, nil
+	return result
 }
 
-// items returns copy of v.remoteItems
-func (v *variable) items() map[string]*variableItem {
-	v.remoteItemsMx.Lock()
-	defer v.remoteItemsMx.Unlock()
-
-	r := make(map[string]*variableItem, len(v.remoteItems))
-
-	for nodeID, i := range v.remoteItems {
-		r[nodeID] = &variableItem{v: i.v, s: i.s}
-	}
-
-	return r
-}
-
-func (v *variable) getTTL() int64 {
+func (v *variable) TTL() int64 {
 	return atomic.LoadInt64(&v.ttl)
 }
 
-func (v *variable) getTTLStamp() int64 {
-	return atomic.LoadInt64(&v.ttlStamp)
+func (v *variable) TTLVersion() int64 {
+	return atomic.LoadInt64(&v.ttlVersion)
 }
 
 func (v *variable) update(delta int64) int64 {
-	return v.selfItem.update(delta)
+	return v.self.update(delta)
 }
 
 func (v *variable) updateTTL(ttl time.Time) {
 	atomic.StoreInt64(&v.ttl, ttl.UnixNano())
-	atomic.StoreInt64(&v.ttlStamp, time.Now().UTC().UnixNano())
+	atomic.AddInt64(&v.ttlVersion, 1)
+	v.self.update(0) // обновляем текущее значение на 0, чтобы обновилась версия переменной и она ушла на репликацию
 }
 
-// updateRemoteNode updates value for selected node and returns flag: updated or not
-func (v *variable) updateRemoteNode(nodeID string, value, stamp int64) bool {
+// updateItem updates value for selected node and returns flag: updated or not
+func (v *variable) updateItem(nodeID string, value, version int64) bool {
 	v.remoteItemsMx.Lock()
 	defer v.remoteItemsMx.Unlock()
 
@@ -145,9 +76,8 @@ func (v *variable) updateRemoteNode(nodeID string, value, stamp int64) bool {
 		updated = true
 	}
 
-	if i.stamp() < stamp {
-		i.setValue(value)
-		i.setStamp(stamp)
+	if i.version() < version {
+		i.set(value, version)
 		updated = true
 	}
 

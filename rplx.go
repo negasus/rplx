@@ -1,6 +1,8 @@
 package rplx
 
 import (
+	"context"
+	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -11,16 +13,15 @@ import (
 )
 
 var (
-	// ErrNodeAlreadyExists describe error for add already exists node
+	// ErrNodeAlreadyExists returns from AddRemoteNode if node already exists
 	ErrNodeAlreadyExists = errors.New("node already exists")
 
-	defaultSendVariableToNodeTimeout   = time.Millisecond * 500
-	defaultSendToReplicationTimeout    = time.Millisecond * 500
-	defaultGCInterval                  = time.Second * 60
-	defaultLogger                      = zap.NewNop()
-	defaultReplicationChanCap          = 10240
-	defaultNodeMaxBufferSize           = 1024
-	defaultByTickerReplicationInterval = time.Minute
+	defaultSendVariableToNodeTimeout = time.Millisecond * 500
+	defaultSendToReplicationTimeout  = time.Millisecond * 500
+	defaultGCInterval                = time.Second * 60
+	defaultLogger                    = zap.NewNop()
+	defaultReplicationChanCap        = 10240
+	defaultNodeMaxBufferSize         = 1024
 )
 
 // Rplx describe main Rplx object
@@ -39,36 +40,31 @@ type Rplx struct {
 	gcInterval        time.Duration
 	nodeMaxBufferSize int
 
-	runByTickerReplication      bool
-	byTickerReplicationInterval time.Duration
-
 	readOnly bool
 }
 
 // New creates new Rplx
-func New(nodeID string, opts ...Option) *Rplx {
+func New(opts ...Option) *Rplx {
 	r := &Rplx{
-		nodeID:                      nodeID,
-		logger:                      defaultLogger,
-		variables:                   make(map[string]*variable),
-		replicationChan:             make(chan *variable, defaultReplicationChanCap),
-		nodes:                       make(map[string]*node),
-		gcInterval:                  defaultGCInterval,
-		nodeMaxBufferSize:           defaultNodeMaxBufferSize,
-		runByTickerReplication:      false,
-		byTickerReplicationInterval: defaultByTickerReplicationInterval,
+		logger:            defaultLogger,
+		variables:         make(map[string]*variable),
+		replicationChan:   make(chan *variable, defaultReplicationChanCap),
+		nodes:             make(map[string]*node),
+		gcInterval:        defaultGCInterval,
+		nodeMaxBufferSize: defaultNodeMaxBufferSize,
 	}
 
+	r.nodeID = uuid.New().String()
+
+	// apply options
 	for _, o := range opts {
 		o(r)
 	}
 
-	if r.runByTickerReplication {
-		go r.byTickerReplication()
-	}
-
 	go r.listenReplicationChannel()
 	go r.startGC()
+
+	r.logger.Debug("start rplx", zap.String("remoteNodeID", r.nodeID))
 
 	return r
 }
@@ -86,24 +82,25 @@ func (rplx *Rplx) StartReplicationServer(ln net.Listener) error {
 	return server.Serve(ln)
 }
 
-// AddNode adds and serve new remote node
-func (rplx *Rplx) AddNode(nodeID string, addr string, syncInterval time.Duration, opts grpc.DialOption) error {
+// Hello is implementation grpc method for get Hello request
+func (rplx *Rplx) Hello(ctx context.Context, req *HelloRequest) (*HelloResponse, error) {
+	return &HelloResponse{ID: rplx.nodeID}, nil
+}
+
+// AddRemoteNode adds and listenReplicationChannel new remote node
+func (rplx *Rplx) AddRemoteNode(addr string, syncInterval time.Duration, opts grpc.DialOption) error {
 	rplx.nodesMx.Lock()
 	defer rplx.nodesMx.Unlock()
 
-	_, ok := rplx.nodes[nodeID]
-	if ok {
+	if _, ok := rplx.nodes[addr]; ok {
 		return ErrNodeAlreadyExists
 	}
 
-	n, err := newNode(rplx.nodeID, nodeID, addr, syncInterval, rplx.logger, rplx.nodeMaxBufferSize, opts)
+	n, err := newNode(rplx.nodeID, addr, opts, syncInterval, rplx.nodeMaxBufferSize, rplx.logger)
 	if err != nil {
-		return errors.Wrap(err, "error create node")
+		return err
 	}
-
-	go n.serve()
-
-	rplx.nodes[nodeID] = n
+	rplx.nodes[n.remoteNodeID] = n
 
 	return nil
 }
@@ -127,27 +124,9 @@ func (rplx *Rplx) listenReplicationChannel() {
 	for v := range rplx.replicationChan {
 		rplx.nodesMx.RLock()
 		for nodeID, node := range rplx.nodes {
-			if !v.isReplicated("") || !v.isReplicated(node.ID) {
-				go rplx.sendVariableToNode(v, nodeID, node)
-			}
+			go rplx.sendVariableToNode(v, nodeID, node)
 		}
 		rplx.nodesMx.RUnlock()
-	}
-}
-
-func (rplx *Rplx) byTickerReplication() {
-	t := time.NewTicker(rplx.byTickerReplicationInterval)
-
-	for range t.C {
-		rplx.variablesMx.RLock()
-		for _, v := range rplx.variables {
-			if v.isReplicatedAll() {
-				continue
-			}
-			go rplx.sendToReplication(v)
-		}
-
-		rplx.variablesMx.RUnlock()
 	}
 }
 
@@ -155,7 +134,7 @@ func (rplx *Rplx) sendVariableToNode(v *variable, nodeID string, n *node) {
 	select {
 	case n.replicationChan <- v:
 	case <-time.After(defaultSendVariableToNodeTimeout):
-		rplx.logger.Error("error send variable to node replication channel", zap.String("remote node ID", nodeID))
+		rplx.logger.Error("error send variable to node replication channel", zap.String("remote node remoteNodeID", nodeID))
 	}
 }
 
@@ -172,26 +151,26 @@ func (rplx *Rplx) startGC() {
 
 // gc collects expired variables and remove it from rplx.variable map
 func (rplx *Rplx) gc() {
-	vars := make([]string, 0)
+	namesToDelete := make([]string, 0)
 
 	now := time.Now().UTC().UnixNano()
 
 	rplx.variablesMx.RLock()
 
-	currentLen := len(rplx.variables)
-
 	for name, v := range rplx.variables {
 		if v.ttl > 0 && v.ttl < now {
-			vars = append(vars, name)
+			namesToDelete = append(namesToDelete, name)
 		}
 	}
 	rplx.variablesMx.RUnlock()
 
 	rplx.variablesMx.Lock()
-	for _, name := range vars {
+	for _, name := range namesToDelete {
 		delete(rplx.variables, name)
 	}
 	rplx.variablesMx.Unlock()
 
-	rplx.logger.Debug("GC done", zap.Int("deleted", len(vars)), zap.Int("init count", currentLen))
+	if len(namesToDelete) > 0 {
+		rplx.logger.Debug("gc collect variables", zap.Int("count", len(namesToDelete)), zap.Strings("names", namesToDelete))
+	}
 }

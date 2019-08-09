@@ -6,10 +6,8 @@ import (
 )
 
 var (
-	// ErrVariableNotExists describe error for non exists variable
+	// ErrVariableNotExists returns if variable not exists
 	ErrVariableNotExists = errors.New("variable not exists")
-	// ErrTTLLessThanNow describe error for func UpdateTTL
-	ErrTTLLessThanNow = errors.New("TTL less than Now")
 )
 
 // Get returns variable v or error if variable not exists or expired
@@ -23,7 +21,7 @@ func (rplx *Rplx) Get(name string) (int64, error) {
 		return 0, ErrVariableNotExists
 	}
 
-	ttl := v.getTTL()
+	ttl := v.TTL()
 
 	if ttl > 0 && ttl < time.Now().UTC().UnixNano() {
 		rplx.variablesMx.Lock()
@@ -33,7 +31,7 @@ func (rplx *Rplx) Get(name string) (int64, error) {
 		return 0, ErrVariableNotExists
 	}
 
-	return v.get()
+	return v.get(), nil
 }
 
 // Delete sets for variable ttl with -1 sec from Now,
@@ -58,11 +56,6 @@ func (rplx *Rplx) Delete(name string) error {
 
 // UpdateTTL updates TTL for variable or return error if variable not exists
 func (rplx *Rplx) UpdateTTL(name string, ttl time.Time) error {
-
-	if ttl.Before(time.Now().UTC()) {
-		return ErrTTLLessThanNow
-	}
-
 	rplx.variablesMx.RLock()
 	defer rplx.variablesMx.RUnlock()
 

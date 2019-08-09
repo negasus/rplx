@@ -1,7 +1,6 @@
 package rplx
 
 import (
-	"context"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
@@ -20,24 +19,20 @@ func TestRplx_Sync(t *testing.T) {
 		Variables: map[string]*SyncVariable{
 			"var1": {NodesValues: map[string]*SyncNodeValue{
 				"node3": {
-					Value: 300,
-					Stamp: 300,
+					Value:   300,
+					Version: 300,
 				},
 			}},
 		},
 	}
 
-	response, err := rplx.Sync(context.Background(), &req)
+	rplx.sync(&req)
 
-	assert.NoError(t, err)
-	assert.Equal(t, int64(0), response.Code)
 	assert.Equal(t, 1, len(rplx.variables))
 
 	v, ok := rplx.variables["var1"]
 	require.True(t, ok)
 
-	value, err := v.get()
-	assert.NoError(t, err)
+	value := v.get()
 	assert.Equal(t, int64(300), value)
-
 }

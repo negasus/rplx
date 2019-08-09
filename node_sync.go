@@ -2,8 +2,8 @@ package rplx
 
 import (
 	"context"
-	"fmt"
 	"go.uber.org/zap"
+	"sync/atomic"
 )
 
 const (
@@ -11,62 +11,96 @@ const (
 )
 
 // sync sends replication data from buffer to remote node
-func (n *node) sync() error {
-	n.syncMx.Lock()
-	defer n.syncMx.Unlock()
+func (n *node) sync() {
+	if !atomic.CompareAndSwapInt32(&n.syncing, 0, 1) {
+		return
+	}
+	defer atomic.StoreInt32(&n.syncing, 0)
 
 	req := SyncRequest{
 		NodeID:    n.localNodeID,
 		Variables: make(map[string]*SyncVariable),
 	}
 
-	vars := make([]*variable, 0)
+	replicatedVersions := make(map[string]int64)
 
 	n.bufferMx.Lock()
+	n.replicatedVersionsMx.RLock()
 	for name, v := range n.buffer {
-
-		req.Variables[name] = &SyncVariable{
-			TTL:         v.getTTL(),
-			TTLStamp:    v.getTTLStamp(),
+		sv := &SyncVariable{
+			TTL:         v.TTL(),
+			TTLVersion:  v.TTLVersion(),
 			NodesValues: make(map[string]*SyncNodeValue),
 		}
 
-		req.Variables[name].NodesValues[n.localNodeID] = &SyncNodeValue{
-			Value: v.selfItem.value(),
-			Stamp: v.selfItem.stamp(),
+		lastReplicatedVersion, ok := n.replicatedVersions[name+"@"+n.localNodeID]
+		if !ok {
+			lastReplicatedVersion = 0
 		}
 
-		for nodeID, item := range v.items() {
-			req.Variables[name].NodesValues[nodeID] = &SyncNodeValue{
-				Value: item.value(),
-				Stamp: item.stamp(),
+		if lastReplicatedVersion < v.self.version() {
+			sv.NodesValues[n.localNodeID] = &SyncNodeValue{
+				Value:   v.self.value(),
+				Version: v.self.version(),
+			}
+			replicatedVersions[name+"@"+n.localNodeID] = v.self.version()
+		}
+
+		v.remoteItemsMx.RLock()
+		for nodeID, item := range v.remoteItems {
+
+			// Dont send to remote node its data
+			if nodeID == n.remoteNodeID {
+				continue
+			}
+
+			lastReplicatedVersion, ok := n.replicatedVersions[name+"@"+nodeID]
+			if !ok {
+				lastReplicatedVersion = -1
+			}
+
+			if lastReplicatedVersion < item.version() {
+				sv.NodesValues[nodeID] = &SyncNodeValue{
+					Value:   item.value(),
+					Version: item.version(),
+				}
+				replicatedVersions[name+"@"+nodeID] = item.version()
 			}
 		}
+		v.remoteItemsMx.RUnlock()
 
-		vars = append(vars, v)
+		if len(sv.NodesValues) > 0 {
+			req.Variables[name] = sv
+		}
 
 		delete(n.buffer, name)
 	}
+	n.replicatedVersionsMx.RUnlock()
 	n.bufferMx.Unlock()
 
-	n.logger.Debug("send sync message", zap.String("nodeID", n.ID))
-	r, err := n.replicatorClient.Sync(context.Background(), &req)
-	n.logger.Debug("complete sync message", zap.String("nodeID", n.ID))
-	if err != nil {
-		return err
+	if len(req.Variables) == 0 {
+		//n.logger.Debug("sync is not required")
+		return
 	}
 
-	n.logger.Debug("message sent", zap.Int64("sync response code", r.Code), zap.String("nodeID", n.ID))
+	n.logger.Debug("send sync message", zap.String("remote node remoteNodeID", n.remoteNodeID), zap.Any("request", req))
+
+	r, err := n.replicatorClient.Sync(context.Background(), &req)
+
+	if err != nil {
+		n.logger.Error("error send sync message", zap.String("remote node remoteNodeID", n.remoteNodeID), zap.Error(err))
+		return
+	}
 
 	if r.Code != syncCodeSuccess {
-		n.logger.Warn("error sync response code", zap.Int64("code", r.Code))
-		return fmt.Errorf("bad response code, %d", r.Code)
+		n.logger.Error("error sync response code", zap.String("remote node remoteNodeID", n.remoteNodeID), zap.Int64("code", r.Code))
+		return
 	}
 
-	// mark variables as replicated for this node
-	for _, v := range vars {
-		v.updateReplicationStamp(n.ID)
+	// mark variables as replicated
+	n.replicatedVersionsMx.Lock()
+	for key, stamp := range replicatedVersions {
+		n.replicatedVersions[key] = stamp
 	}
-
-	return nil
+	n.replicatedVersionsMx.Unlock()
 }

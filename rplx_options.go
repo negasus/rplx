@@ -8,6 +8,13 @@ import (
 // Option describe Rplx option
 type Option func(*Rplx)
 
+// WithNodeID option for specify rplx node name
+func WithNodeID(nodeID string) Option {
+	return func(rplx *Rplx) {
+		rplx.nodeID = nodeID
+	}
+}
+
 // WithLogger option for specify logger
 func WithLogger(logger *zap.Logger) Option {
 	return func(rplx *Rplx) {
@@ -33,20 +40,6 @@ func WithReplicationChanCap(c int) Option {
 func WithNodeMaxBufferSize(s int) Option {
 	return func(rplx *Rplx) {
 		rplx.nodeMaxBufferSize = s
-	}
-}
-
-// WithByTickerReplication option for run background by ticker replication
-func WithByTickerReplication() Option {
-	return func(rplx *Rplx) {
-		rplx.runByTickerReplication = true
-	}
-}
-
-// WithByTickerReplicationInterval option for set by ticker replication interval
-func WithByTickerReplicationInterval(i time.Duration) Option {
-	return func(rplx *Rplx) {
-		rplx.byTickerReplicationInterval = i
 	}
 }
 

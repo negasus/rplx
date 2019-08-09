@@ -6,10 +6,16 @@ import (
 )
 
 // Sync is GRPC function, fired on incoming sync message
-func (rplx *Rplx) Sync(ctx context.Context, mes *SyncRequest) (*SyncResponse, error) {
-	rplx.logger.Debug("get SyncRequest", zap.Any("request", mes))
+func (rplx *Rplx) Sync(ctx context.Context, req *SyncRequest) (*SyncResponse, error) {
+	rplx.logger.Debug("get SyncRequest", zap.Any("request", req))
 
-	for name, v := range mes.Variables {
+	go rplx.sync(req)
+
+	return &SyncResponse{Code: 0}, nil
+}
+
+func (rplx *Rplx) sync(req *SyncRequest) {
+	for name, v := range req.Variables {
 		rplx.variablesMx.Lock()
 		localVar, ok := rplx.variables[name]
 		if !ok {
@@ -18,26 +24,40 @@ func (rplx *Rplx) Sync(ctx context.Context, mes *SyncRequest) (*SyncResponse, er
 		}
 		rplx.variablesMx.Unlock()
 
-		updated := false
+		varWasUpdated := false
+
+		rplx.nodesMx.RLock()
+		remoteNodeInstance := rplx.nodes[req.NodeID]
+		rplx.nodesMx.RUnlock()
 
 		for nodeID, n := range v.NodesValues {
-			if localVar.updateRemoteNode(nodeID, n.Value, n.Stamp) {
-				updated = true
+			// Если мы получили данные с нашим remoteNodeID, пропускаем
+			if nodeID == rplx.nodeID {
+				continue
 			}
+
+			if localVar.updateItem(nodeID, n.Value, n.Version) {
+				varWasUpdated = true
+
+				// Если нода, от которой пришли данные, есть у нас в списке - куда мы шлем обновления,
+				// то для данной переменной для данной ноды запишем, что у нас самая свежая версия
+				if remoteNodeInstance != nil {
+					remoteNodeInstance.replicatedVersionsMx.Lock()
+					remoteNodeInstance.replicatedVersions[name+"@"+nodeID] = n.Version
+					remoteNodeInstance.replicatedVersionsMx.Unlock()
+				}
+			}
+
 		}
 
-		if localVar.ttlStamp < v.TTL {
+		if localVar.ttlVersion < v.TTLVersion {
 			localVar.ttl = v.TTL
-			localVar.ttlStamp = v.TTLStamp
-			updated = true
+			localVar.ttlVersion = v.TTLVersion
+			varWasUpdated = true
 		}
 
-		if updated {
+		if varWasUpdated {
 			go rplx.sendToReplication(localVar)
 		}
-
-		localVar.updateReplicationStamp(mes.NodeID)
 	}
-
-	return &SyncResponse{Code: 0}, nil
 }
