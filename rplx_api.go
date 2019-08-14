@@ -8,6 +8,7 @@ import (
 var (
 	// ErrVariableNotExists returns if variable not exists
 	ErrVariableNotExists = errors.New("variable not exists")
+	ErrVariableExpired   = errors.New("variable expired")
 )
 
 // Get returns variable v or error if variable not exists or expired
@@ -28,7 +29,7 @@ func (rplx *Rplx) Get(name string) (int64, error) {
 		delete(rplx.variables, name)
 		rplx.variablesMx.Unlock()
 
-		return 0, ErrVariableNotExists
+		return 0, ErrVariableExpired
 	}
 
 	return v.get(), nil
