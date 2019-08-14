@@ -12,7 +12,10 @@ const (
 
 // sync sends replication data from buffer to remote node
 func (n *node) sync() {
+	n.logger.Debug("call node.sync", zap.String("remote node id", n.remoteNodeID))
+
 	if !atomic.CompareAndSwapInt32(&n.syncing, 0, 1) {
+		n.logger.Debug("call node.sync fail, active sync", zap.String("remote node id", n.remoteNodeID))
 		return
 	}
 	defer atomic.StoreInt32(&n.syncing, 0)
@@ -79,11 +82,11 @@ func (n *node) sync() {
 	n.bufferMx.Unlock()
 
 	if len(req.Variables) == 0 {
-		//n.logger.Debug("sync is not required")
+		n.logger.Debug("call node.sync cancelled, empty variables", zap.String("remote node id", n.remoteNodeID))
 		return
 	}
 
-	n.logger.Debug("send sync message", zap.String("remote node remoteNodeID", n.remoteNodeID), zap.Any("request", req))
+	n.logger.Debug("send sync message", zap.String("remote node remoteNodeID", n.remoteNodeID), zap.Int("variables", len(req.Variables)))
 
 	r, err := n.replicatorClient.Sync(context.Background(), &req)
 
