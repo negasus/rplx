@@ -50,11 +50,13 @@ func New(opts ...Option) *Rplx {
 		nodeMaxBufferSize: defaultNodeMaxBufferSize,
 	}
 
-	r.nodeID = uuid.New().String()
-
 	// apply options
 	for _, o := range opts {
 		o(r)
+	}
+
+	if r.nodeID == "" {
+		r.nodeID = uuid.New().String()
 	}
 
 	go r.listenReplicationChannel()
