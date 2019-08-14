@@ -2,7 +2,6 @@ package rplx
 
 import (
 	"context"
-	"fmt"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"sync"
@@ -14,8 +13,7 @@ import (
 var nodeChSize = 1024
 
 const (
-	defaultNodeConnectMaxAttempt = 10
-	defaultNodeAttemptTimeout    = time.Second * 5
+	defaultSendHelloRequestInterval = time.Second * 5
 )
 
 // node describe remote node
@@ -41,6 +39,8 @@ type node struct {
 	replicatedVersions   map[string]int64
 
 	syncInterval time.Duration
+
+	stopConnecting chan struct{}
 }
 
 func newNode(localNodeID string, addr string, opts grpc.DialOption, syncInterval time.Duration, maxBufferSize int, logger *zap.Logger) (*node, error) {
@@ -53,6 +53,7 @@ func newNode(localNodeID string, addr string, opts grpc.DialOption, syncInterval
 		syncInterval:       syncInterval,
 		maxBufferSize:      maxBufferSize,
 		replicatedVersions: make(map[string]int64),
+		stopConnecting:     make(chan struct{}),
 	}
 
 	conn, err := grpc.Dial(addr, opts)
@@ -62,30 +63,41 @@ func newNode(localNodeID string, addr string, opts grpc.DialOption, syncInterval
 
 	n.replicatorClient = NewReplicatorClient(conn)
 
-	if err := n.connect(); err != nil {
-		return nil, err
+	go n.connect(addr)
+
+	return n, nil
+}
+
+func (n *node) Stop() {
+	close(n.stopConnecting)
+}
+
+func (n *node) connect(addr string) {
+	t := time.NewTicker(defaultSendHelloRequestInterval)
+	var connected bool
+
+	for {
+		select {
+		case <-t.C:
+			hello, err := n.replicatorClient.Hello(context.Background(), &HelloRequest{})
+			if err == nil {
+				n.remoteNodeID = hello.ID
+				connected = true
+				break
+			}
+			n.logger.Warn("error send hello request", zap.Error(err))
+		case <-n.stopConnecting:
+			return
+		}
+		if connected {
+			break
+		}
 	}
 
 	n.logger.Debug("connect to remote node", zap.String("addr", addr), zap.String("remote node ID", n.remoteNodeID))
 
 	go n.syncByTicker()
 	go n.listenReplicationChannel()
-
-	return n, nil
-}
-
-func (n *node) connect() error {
-	for i := 0; i < defaultNodeConnectMaxAttempt; i++ {
-		hello, err := n.replicatorClient.Hello(context.Background(), &HelloRequest{})
-		if err == nil {
-			n.remoteNodeID = hello.ID
-			return nil
-		}
-		n.logger.Warn("error send hello request", zap.Error(err))
-		time.Sleep(defaultNodeAttemptTimeout)
-	}
-
-	return fmt.Errorf("error send hello request")
 }
 
 func (n *node) syncByTicker() {

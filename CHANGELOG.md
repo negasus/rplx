@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.2.1 (2019-08-14)
+
+- AddRemoteNode not returns error if fail send HelloRequest
+- HelloRequest sending in infinity loop with interval
+
 ## v0.2.0 (2019-08-09)
 
 - massive refactoring
