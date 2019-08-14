@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.2.2 (2019-08-14)
+
+- refactoring add node
+
 ## v0.2.1 (2019-08-14)
 
 - AddRemoteNode not returns error if fail send HelloRequest
