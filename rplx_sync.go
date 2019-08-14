@@ -7,7 +7,7 @@ import (
 
 // Sync is GRPC function, fired on incoming sync message
 func (rplx *Rplx) Sync(ctx context.Context, req *SyncRequest) (*SyncResponse, error) {
-	rplx.logger.Debug("get SyncRequest", zap.Any("request", req))
+	rplx.logger.Debug("get SyncRequest", zap.Int("variables", len(req.Variables)), zap.String("from node", req.NodeID))
 
 	go rplx.sync(req)
 
@@ -15,6 +15,10 @@ func (rplx *Rplx) Sync(ctx context.Context, req *SyncRequest) (*SyncResponse, er
 }
 
 func (rplx *Rplx) sync(req *SyncRequest) {
+	rplx.variablesMx.RLock()
+	rplx.logger.Debug("rplx.variables before sync", zap.Int("count", len(rplx.variables)))
+	rplx.variablesMx.RUnlock()
+
 	for name, v := range req.Variables {
 		rplx.variablesMx.Lock()
 		localVar, ok := rplx.variables[name]
@@ -60,4 +64,8 @@ func (rplx *Rplx) sync(req *SyncRequest) {
 			go rplx.sendToReplication(localVar)
 		}
 	}
+
+	rplx.variablesMx.RLock()
+	rplx.logger.Debug("rplx.variables after sync", zap.Int("count", len(rplx.variables)))
+	rplx.variablesMx.RUnlock()
 }
