@@ -2,6 +2,7 @@ package rplx
 
 import (
 	"sync/atomic"
+	"time"
 )
 
 type variableItem struct {
@@ -14,7 +15,7 @@ func newVariableItem() *variableItem {
 }
 
 func (item *variableItem) update(delta int64) int64 {
-	atomic.AddInt64(&item.ver, 1)
+	atomic.StoreInt64(&item.ver, time.Now().UTC().UnixNano())
 	return atomic.AddInt64(&item.val, delta)
 }
 

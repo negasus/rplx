@@ -56,9 +56,9 @@ func (v *variable) update(delta int64) int64 {
 	return v.self.update(delta)
 }
 
-func (v *variable) updateTTL(ttl time.Time) {
-	atomic.StoreInt64(&v.ttl, ttl.UnixNano())
-	atomic.AddInt64(&v.ttlVersion, 1)
+func (v *variable) updateTTL(ttl int64) {
+	atomic.StoreInt64(&v.ttl, ttl)
+	atomic.StoreInt64(&v.ttlVersion, time.Now().UTC().UnixNano())
 	v.self.update(0) // обновляем текущее значение на 0, чтобы обновилась версия переменной и она ушла на репликацию
 }
 
