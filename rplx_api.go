@@ -46,7 +46,7 @@ func (rplx *Rplx) Delete(name string) error {
 		return ErrVariableNotExists
 	}
 
-	v.updateTTL(time.Now().UTC().Add(-time.Second))
+	v.updateTTL(time.Now().UTC().Add(-time.Second).UnixNano())
 
 	go rplx.sendToReplication(v)
 
@@ -65,7 +65,7 @@ func (rplx *Rplx) UpdateTTL(name string, ttl time.Time) error {
 		return ErrVariableNotExists
 	}
 
-	v.updateTTL(ttl)
+	v.updateTTL(ttl.UnixNano())
 
 	go rplx.sendToReplication(v)
 
@@ -88,6 +88,13 @@ func (rplx *Rplx) Upsert(name string, delta int64) {
 			rplx.variables[name] = v
 		}
 		rplx.variablesMx.Unlock()
+	}
+
+	ttl := v.TTL()
+	// if variable has TTL and TTL less than Now, variable was expired, but not garbage collected
+	if ttl > 0 && ttl < time.Now().UTC().UnixNano() {
+		v.updateTTL(0)
+		delta = delta - v.get()
 	}
 
 	v.update(delta)
