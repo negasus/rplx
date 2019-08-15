@@ -172,7 +172,10 @@ func (rplx *Rplx) gc() {
 
 	rplx.variablesMx.Lock()
 	for _, name := range namesToDelete {
-		delete(rplx.variables, name)
+		v, ok := rplx.variables[name]
+		if ok && v.ttl < time.Now().UTC().UnixNano() {
+			delete(rplx.variables, name)
+		}
 	}
 	rplx.variablesMx.Unlock()
 
