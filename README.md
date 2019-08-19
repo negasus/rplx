@@ -24,6 +24,9 @@ Errors:
 
 Delete variable
 
+Errors:
+- ErrVariableNotExists
+
 By fact this method sets TTL for variable to `Now - second`, send this info to replication and remove from local cache
 
 ### UpdateTTL
