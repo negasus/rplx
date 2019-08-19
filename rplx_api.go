@@ -101,3 +101,27 @@ func (rplx *Rplx) Upsert(name string, delta int64) {
 
 	go rplx.sendToReplication(v)
 }
+
+// All returns all variables values
+// first returns param - not expires variables
+// second param - expires, but not garbage collected variables
+func (rplx *Rplx) All() (notExpired map[string]int64, expired map[string]int64) {
+	notExpired = make(map[string]int64)
+	expired = make(map[string]int64)
+
+	rplx.variablesMx.RLock()
+	defer rplx.variablesMx.RUnlock()
+
+	for name, v := range rplx.variables {
+		ttl := v.TTL()
+
+		if ttl > 0 && ttl < time.Now().UTC().UnixNano() {
+			expired[name] = v.get()
+			continue
+		}
+
+		notExpired[name] = v.get()
+	}
+
+	return
+}

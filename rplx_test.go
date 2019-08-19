@@ -30,3 +30,26 @@ func TestRplx_Upsert_TTL_Upsert(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, int64(200), v)
 }
+
+func TestAPI_All(t *testing.T) {
+	r := New()
+	r.Upsert("VAR1", 100)
+	err := r.UpdateTTL("VAR1", time.Now().UTC().Add(-time.Second))
+	require.NoError(t, err)
+	r.Upsert("VAR2", 200)
+
+	varsNotExpired, varsExpired := r.All()
+	assert.Equal(t, 1, len(varsNotExpired))
+	assert.Equal(t, 1, len(varsExpired))
+
+	var ok bool
+	var v int64
+
+	v, ok = varsNotExpired["VAR2"]
+	assert.True(t, ok)
+	assert.Equal(t, int64(200), v)
+
+	v, ok = varsExpired["VAR1"]
+	assert.True(t, ok)
+	assert.Equal(t, int64(100), v)
+}

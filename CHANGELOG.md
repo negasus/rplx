@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.2.4 (2019-08-19)
+
+- add api method `All`. Returns maps with NotExpired and Expired variables values
+
 ## v0.2.3 (2019-08-15)
 
 - fixes
