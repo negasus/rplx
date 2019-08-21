@@ -3,6 +3,7 @@ on: [push]
 jobs:
   test:
     name: Tests
+    runs-on: ubuntu-18.04
     steps:
     - name: run tests
       run: go test ./...
