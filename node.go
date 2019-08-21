@@ -97,7 +97,18 @@ func (n *node) Connect(addr string, r *Rplx) {
 		return
 	}
 
+	r.variablesMx.RLock()
+
+	for name, v := range r.variables {
+		n.buffer[name] = v
+	}
 	r.nodes[n.remoteNodeID] = n
+
+	n.logger.Debug("add variables for sync", zap.Int("count", len(n.buffer)), zap.Any("vars", r.variables))
+
+	r.variablesMx.RUnlock()
+
+	go n.sync()
 
 	go n.syncByTicker()
 	go n.listenReplicationChannel()

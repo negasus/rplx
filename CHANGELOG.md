@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.2.5 (2019-08-21)
+
+- send all variables to remote node after connect
+
 ## v0.2.4 (2019-08-19)
 
 - add api method `All`. Returns maps with NotExpired and Expired variables values
