@@ -73,7 +73,8 @@ func (rplx *Rplx) UpdateTTL(name string, ttl time.Time) error {
 }
 
 // Upsert change variable on delta or create variable, if not exists
-func (rplx *Rplx) Upsert(name string, delta int64) {
+// returns new value
+func (rplx *Rplx) Upsert(name string, delta int64) int64 {
 	var v *variable
 	var ok bool
 
@@ -100,6 +101,8 @@ func (rplx *Rplx) Upsert(name string, delta int64) {
 	v.update(delta)
 
 	go rplx.sendToReplication(v)
+
+	return v.get()
 }
 
 // All returns all variables values

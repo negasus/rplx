@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.2.6 (2019-08-22)
+
+- API method 'Upsert' returns new variable value
+
 ## v0.2.5 (2019-08-21)
 
 - send all variables to remote node after connect
