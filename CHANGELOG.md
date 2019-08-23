@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.2.7 (2019-08-23)
+
+- if call node.sync while sync is active, place defer sync
+
 ## v0.2.6 (2019-08-22)
 
 - API method 'Upsert' returns new variable value
