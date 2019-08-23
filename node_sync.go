@@ -4,6 +4,7 @@ import (
 	"context"
 	"go.uber.org/zap"
 	"sync/atomic"
+	"time"
 )
 
 const (
@@ -12,13 +13,29 @@ const (
 
 // sync sends replication data from buffer to remote node
 func (n *node) sync() {
-	n.logger.Debug("call node.sync", zap.String("remote node id", n.remoteNodeID))
-
 	if !atomic.CompareAndSwapInt32(&n.syncing, 0, 1) {
 		n.logger.Debug("call node.sync fail, active sync", zap.String("remote node id", n.remoteNodeID))
+		if n.maxDeferSync > 0 && int(atomic.LoadInt32(&n.deferSyncCounter)) < n.maxDeferSync {
+			n.logger.Debug("place defer sync")
+			time.AfterFunc(n.deferSyncTimeout, func() {
+				atomic.AddInt32(&n.deferSyncCounter, 1)
+				go n.sync()
+			})
+			return
+		}
+		n.logger.Debug("max defer sync reached, abort")
 		return
 	}
 	defer atomic.StoreInt32(&n.syncing, 0)
+	atomic.StoreInt32(&n.deferSyncCounter, 0)
+
+	n.bufferMx.Lock()
+
+	// if replication called by ticker, but buffer is empty - return
+	if len(n.buffer) == 0 {
+		n.bufferMx.Unlock()
+		return
+	}
 
 	req := SyncRequest{
 		NodeID:    n.localNodeID,
@@ -27,7 +44,6 @@ func (n *node) sync() {
 
 	replicatedVersions := make(map[string]int64)
 
-	n.bufferMx.Lock()
 	n.replicatedVersionsMx.RLock()
 	for name, v := range n.buffer {
 		sv := &SyncVariable{
@@ -86,17 +102,17 @@ func (n *node) sync() {
 		return
 	}
 
-	n.logger.Debug("send sync message", zap.String("remote node remoteNodeID", n.remoteNodeID), zap.Int("variables", len(req.Variables)))
+	n.logger.Debug("send sync message", zap.String("remote node ID", n.remoteNodeID), zap.Int("variables", len(req.Variables)), zap.Any("vars map", req.Variables))
 
 	r, err := n.replicatorClient.Sync(context.Background(), &req)
 
 	if err != nil {
-		n.logger.Error("error send sync message", zap.String("remote node remoteNodeID", n.remoteNodeID), zap.Error(err))
+		n.logger.Error("error send sync message", zap.String("remote node ID", n.remoteNodeID), zap.Error(err))
 		return
 	}
 
 	if r.Code != syncCodeSuccess {
-		n.logger.Error("error sync response code", zap.String("remote node remoteNodeID", n.remoteNodeID), zap.Int64("code", r.Code))
+		n.logger.Error("error sync response code", zap.String("remote node ID", n.remoteNodeID), zap.Int64("code", r.Code))
 		return
 	}
 

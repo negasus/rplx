@@ -7,7 +7,7 @@ import (
 
 // Sync is GRPC function, fired on incoming sync message
 func (rplx *Rplx) Sync(ctx context.Context, req *SyncRequest) (*SyncResponse, error) {
-	rplx.logger.Debug("get SyncRequest", zap.Int("variables", len(req.Variables)), zap.String("from node", req.NodeID))
+	rplx.logger.Debug("get SyncRequest", zap.Int("variables", len(req.Variables)), zap.String("from node", req.NodeID), zap.Any("vars", req.Variables))
 
 	go rplx.sync(req)
 
@@ -59,6 +59,8 @@ func (rplx *Rplx) sync(req *SyncRequest) {
 			localVar.ttlVersion = v.TTLVersion
 			varWasUpdated = true
 		}
+
+		rplx.logger.Debug("var synced after syncRequest", zap.String("name", name), zap.Int64("value", localVar.get()))
 
 		if varWasUpdated {
 			go rplx.sendToReplication(localVar)

@@ -18,6 +18,8 @@ var (
 	defaultLogger                    = zap.NewNop()
 	defaultReplicationChanCap        = 10240
 	defaultNodeMaxBufferSize         = 1024
+	defaultNodeMaxDeferSync          = 5
+	defaultNodeDeferSyncTimeout      = time.Second
 )
 
 // Rplx describe main Rplx object
@@ -102,6 +104,8 @@ func (rplx *Rplx) AddRemoteNode(addr string, syncInterval time.Duration, opts gr
 		maxBufferSize:      rplx.nodeMaxBufferSize,
 		replicatedVersions: make(map[string]int64),
 		stopConnecting:     make(chan struct{}),
+		maxDeferSync:       defaultNodeMaxDeferSync,
+		deferSyncTimeout:   defaultNodeDeferSyncTimeout,
 	}
 
 	n.replicatorClient = NewReplicatorClient(conn)

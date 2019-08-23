@@ -4,7 +4,6 @@ import (
 	"context"
 	"go.uber.org/zap"
 	"sync"
-	"sync/atomic"
 	"time"
 )
 
@@ -38,6 +37,10 @@ type node struct {
 	replicatedVersions   map[string]int64
 
 	syncInterval time.Duration
+
+	deferSyncTimeout time.Duration
+	deferSyncCounter int32
+	maxDeferSync     int
 
 	stopConnecting chan struct{}
 }
@@ -131,9 +134,7 @@ func (n *node) listenReplicationChannel() {
 		n.bufferMx.Unlock()
 
 		if l > n.maxBufferSize {
-			if atomic.LoadInt32(&n.syncing) == 0 {
-				go n.sync()
-			}
+			go n.sync()
 		}
 	}
 }
