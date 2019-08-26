@@ -1,0 +1,23 @@
+version: '3'
+services:
+  node1:
+    build:
+      context: .
+      dockerfile: ./test/Dockerfile
+    command: ["/app", "--name", "node1", "--nodes", "node2:2001,node3:2001"]
+    ports:
+      - 2001:2000
+  node2:
+    build:
+      context: .
+      dockerfile: ./test/Dockerfile
+    command: ["/app", "--name", "node2", "--nodes", "node1:2001"]
+    ports:
+      - 2002:2000
+  node3:
+    build:
+      context: .
+      dockerfile: ./test/Dockerfile
+    command: ["/app", "--name", "node3", "--nodes", "node1:2001"]
+    ports:
+      - 2003:2000
