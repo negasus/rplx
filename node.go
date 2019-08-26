@@ -42,29 +42,12 @@ type node struct {
 	deferSyncCounter int32
 	maxDeferSync     int
 
-	stopConnecting chan struct{}
+	stopChan chan struct{}
 }
 
-//func newNode(localNodeID string, addr string, opts grpc.DialOption, syncInterval time.Duration, maxBufferSize int, logger *zap.Logger) (*node, error) {
-//
-//	n := &node{
-//		localNodeID:        localNodeID,
-//		logger:             logger,
-//		replicationChan:    make(chan *variable, nodeChSize),
-//		buffer:             make(map[string]*variable),
-//		syncInterval:       syncInterval,
-//		maxBufferSize:      maxBufferSize,
-//		replicatedVersions: make(map[string]int64),
-//		stopConnecting:     make(chan struct{}),
-//	}
-//
-//	n.replicatorClient = NewReplicatorClient(conn)
-//
-//	return n, nil
-//}
-
 func (n *node) Stop() {
-	close(n.stopConnecting)
+	close(n.replicationChan)
+	close(n.stopChan)
 }
 
 func (n *node) Connect(addr string, r *Rplx) {
@@ -81,7 +64,8 @@ func (n *node) Connect(addr string, r *Rplx) {
 				break
 			}
 			n.logger.Warn("error send hello request", zap.Error(err))
-		case <-n.stopConnecting:
+		case <-n.stopChan:
+			t.Stop()
 			return
 		}
 		if connected {
@@ -120,9 +104,14 @@ func (n *node) Connect(addr string, r *Rplx) {
 func (n *node) syncByTicker() {
 	t := time.NewTicker(n.syncInterval)
 
-	for range t.C {
-		//n.logger.Debug("start sync for node by ticker", zap.String("remote node ID", n.remoteNodeID))
-		n.sync()
+	for {
+		select {
+		case <-t.C:
+			n.sync()
+		case <-n.stopChan:
+			t.Stop()
+			return
+		}
 	}
 }
 

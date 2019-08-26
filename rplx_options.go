@@ -49,3 +49,17 @@ func WithReadOnly() Option {
 		rplx.readOnly = true
 	}
 }
+
+// WithRemoteNodesProvider option
+func WithRemoteNodesProvider(provider RemoteNodesProvider) Option {
+	return func(rplx *Rplx) {
+		rplx.remoteNodesProvider = provider
+	}
+}
+
+// WithRemoteNodesCheckInterval option
+func WithRemoteNodesCheckInterval(interval time.Duration) Option {
+	return func(rplx *Rplx) {
+		rplx.remoteNodesCheckInterval = interval
+	}
+}

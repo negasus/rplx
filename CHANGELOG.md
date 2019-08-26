@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.2.8 (2019-08-26)
+
+- make RemoteNodesProvider for check remote nodes list
+
 ## v0.2.7 (2019-08-23)
 
 - if call node.sync while sync is active, place defer sync

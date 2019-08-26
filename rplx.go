@@ -20,7 +20,16 @@ var (
 	defaultNodeMaxBufferSize         = 1024
 	defaultNodeMaxDeferSync          = 5
 	defaultNodeDeferSyncTimeout      = time.Second
+	defaultRemoteNodesCheckInterval  = time.Minute
 )
+
+type RemoteNodeOption struct {
+	Addr         string
+	SyncInterval time.Duration
+	DialOpts     grpc.DialOption
+}
+
+type RemoteNodesProvider func() []*RemoteNodeOption
 
 // Rplx describe main Rplx object
 type Rplx struct {
@@ -38,18 +47,24 @@ type Rplx struct {
 	gcInterval        time.Duration
 	nodeMaxBufferSize int
 
+	remoteNodesCurrentList   map[string]struct{}
+	remoteNodesProvider      RemoteNodesProvider
+	remoteNodesCheckInterval time.Duration
+
 	readOnly bool
 }
 
 // New creates new Rplx
 func New(opts ...Option) *Rplx {
 	r := &Rplx{
-		logger:            defaultLogger,
-		variables:         make(map[string]*variable),
-		replicationChan:   make(chan *variable, defaultReplicationChanCap),
-		nodes:             make(map[string]*node),
-		gcInterval:        defaultGCInterval,
-		nodeMaxBufferSize: defaultNodeMaxBufferSize,
+		logger:                   defaultLogger,
+		variables:                make(map[string]*variable),
+		replicationChan:          make(chan *variable, defaultReplicationChanCap),
+		nodes:                    make(map[string]*node),
+		gcInterval:               defaultGCInterval,
+		nodeMaxBufferSize:        defaultNodeMaxBufferSize,
+		remoteNodesCheckInterval: defaultRemoteNodesCheckInterval,
+		remoteNodesCurrentList:   make(map[string]struct{}),
 	}
 
 	// apply options
@@ -63,6 +78,10 @@ func New(opts ...Option) *Rplx {
 
 	go r.listenReplicationChannel()
 	go r.startGC()
+
+	if r.remoteNodesProvider != nil {
+		go r.startRemoteNodesListener()
+	}
 
 	r.logger.Debug("rplx start", zap.String("local node id", r.nodeID))
 
@@ -87,8 +106,33 @@ func (rplx *Rplx) Hello(ctx context.Context, req *HelloRequest) (*HelloResponse,
 	return &HelloResponse{ID: rplx.nodeID}, nil
 }
 
-// AddRemoteNode adds and listenReplicationChannel new remote node
-func (rplx *Rplx) AddRemoteNode(addr string, syncInterval time.Duration, opts grpc.DialOption) error {
+func (rplx *Rplx) startRemoteNodesListener() {
+	t := time.NewTicker(rplx.remoteNodesCheckInterval)
+
+	for range t.C {
+		nodes := rplx.remoteNodesProvider()
+
+		for _, node := range nodes {
+			if _, ok := rplx.remoteNodesCurrentList[node.Addr]; ok {
+				continue
+			}
+
+			rplx.logger.Debug("add remote node", zap.String("addr", node.Addr))
+
+			if err := rplx.addRemoteNode(node.Addr, node.SyncInterval, node.DialOpts); err != nil {
+				rplx.logger.Error("error add remote node", zap.String("addr", node.Addr))
+				continue
+			}
+
+			rplx.remoteNodesCurrentList[node.Addr] = struct{}{}
+		}
+
+		// todo: stop and remove nodes, not exists in new list 'nodes'
+	}
+}
+
+// addRemoteNode adds and listenReplicationChannel new remote node
+func (rplx *Rplx) addRemoteNode(addr string, syncInterval time.Duration, opts grpc.DialOption) error {
 
 	conn, err := grpc.Dial(addr, opts)
 	if err != nil {
@@ -103,7 +147,7 @@ func (rplx *Rplx) AddRemoteNode(addr string, syncInterval time.Duration, opts gr
 		syncInterval:       syncInterval,
 		maxBufferSize:      rplx.nodeMaxBufferSize,
 		replicatedVersions: make(map[string]int64),
-		stopConnecting:     make(chan struct{}),
+		stopChan:           make(chan struct{}),
 		maxDeferSync:       defaultNodeMaxDeferSync,
 		deferSyncTimeout:   defaultNodeDeferSyncTimeout,
 	}
