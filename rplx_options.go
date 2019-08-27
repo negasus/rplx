@@ -36,13 +36,6 @@ func WithReplicationChanCap(c int) Option {
 	}
 }
 
-// WithNodeMaxBufferSize option for set node max buffer size
-func WithNodeMaxBufferSize(s int) Option {
-	return func(rplx *Rplx) {
-		rplx.nodeMaxBufferSize = s
-	}
-}
-
 // WithReadOnly option sets read only mode
 func WithReadOnly() Option {
 	return func(rplx *Rplx) {
