@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.2.9 (2019-08-27)
+
+- remove option WithNodeMaxBufferSize - move to RemoteNoteOption
+- refactoring
+
 ## v0.2.8 (2019-08-26)
 
 - make RemoteNodesProvider for check remote nodes list
