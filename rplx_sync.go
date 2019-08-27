@@ -15,10 +15,6 @@ func (rplx *Rplx) Sync(ctx context.Context, req *SyncRequest) (*SyncResponse, er
 }
 
 func (rplx *Rplx) sync(req *SyncRequest) {
-	rplx.variablesMx.RLock()
-	rplx.logger.Debug("rplx.variables before sync", zap.Int("count", len(rplx.variables)))
-	rplx.variablesMx.RUnlock()
-
 	for name, v := range req.Variables {
 		rplx.variablesMx.Lock()
 		localVar, ok := rplx.variables[name]
@@ -66,8 +62,4 @@ func (rplx *Rplx) sync(req *SyncRequest) {
 			go rplx.sendToReplication(localVar)
 		}
 	}
-
-	rplx.variablesMx.RLock()
-	rplx.logger.Debug("rplx.variables after sync", zap.Int("count", len(rplx.variables)))
-	rplx.variablesMx.RUnlock()
 }
