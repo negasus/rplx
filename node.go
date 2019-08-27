@@ -117,7 +117,7 @@ func (n *node) dial(dialOpts grpc.DialOption) error {
 	}
 
 	n.conn, err = grpc.Dial(n.addr, dialOpts)
-	if err == nil {
+	if err != nil {
 		return err
 	}
 
