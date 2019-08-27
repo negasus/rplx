@@ -26,8 +26,12 @@ func (rplx *Rplx) sync(req *SyncRequest) {
 
 		varWasUpdated := false
 
+		var remoteNodeInstance *node
+
 		rplx.nodesMx.RLock()
-		remoteNodeInstance := rplx.nodes[req.NodeID]
+		if remoteNodeAddr, ok := rplx.nodesIDToAddr[req.NodeID]; ok {
+			remoteNodeInstance = rplx.nodes[remoteNodeAddr]
+		}
 		rplx.nodesMx.RUnlock()
 
 		for nodeID, n := range v.NodesValues {
@@ -47,7 +51,6 @@ func (rplx *Rplx) sync(req *SyncRequest) {
 					remoteNodeInstance.replicatedVersionsMx.Unlock()
 				}
 			}
-
 		}
 
 		if localVar.ttlVersion < v.TTLVersion {
@@ -55,8 +58,6 @@ func (rplx *Rplx) sync(req *SyncRequest) {
 			localVar.ttlVersion = v.TTLVersion
 			varWasUpdated = true
 		}
-
-		rplx.logger.Debug("var synced after syncRequest", zap.String("name", name), zap.Int64("value", localVar.get()))
 
 		if varWasUpdated {
 			go rplx.sendToReplication(localVar)

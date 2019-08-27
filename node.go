@@ -3,26 +3,33 @@ package rplx
 import (
 	"context"
 	"go.uber.org/zap"
+	"google.golang.org/grpc"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
-// replication channel size
-var nodeChSize = 1024
-
 const (
-	defaultSendHelloRequestInterval = time.Second * 5
+	defaultRemoteNodeConnectionInterval = time.Second * 5
+	defaultRemoteNodeSyncInterval       = time.Second * 10
+	defaultRemoteNodeMaxBufferSize      = 1024
+	defaultRemoteNodeWaitSyncCount      = 10
+)
+
+var (
+	nodeChSize = 1024
 )
 
 // node describe remote node
 type node struct {
-	syncing int32
+	connected int32
+	syncing   int32
 
+	addr         string
 	localNodeID  string
 	remoteNodeID string
 
 	replicatorClient ReplicatorClient
-	logger           *zap.Logger
 
 	replicationChan chan *variable
 
@@ -36,69 +43,130 @@ type node struct {
 	replicatedVersionsMx sync.RWMutex
 	replicatedVersions   map[string]int64
 
-	syncInterval time.Duration
+	syncInterval       time.Duration
+	connectionInterval time.Duration
 
-	deferSyncTimeout time.Duration
-	deferSyncCounter int32
-	maxDeferSync     int
+	conn *grpc.ClientConn
+
+	syncQueue chan struct{}
 
 	stopChan chan struct{}
+
+	logger *zap.Logger
+}
+
+type RemoteNodeOption struct {
+	Addr               string
+	DialOpts           grpc.DialOption
+	SyncInterval       time.Duration
+	MaxBufferSize      int
+	ConnectionInterval time.Duration
+	WaitSyncCount      int
+}
+
+// DefaultRemoteNodeOption returns default remoteNodeOption with provided address
+func DefaultRemoteNodeOption(addr string) *RemoteNodeOption {
+	option := &RemoteNodeOption{
+		Addr:               addr,
+		DialOpts:           grpc.WithInsecure(),
+		SyncInterval:       defaultRemoteNodeSyncInterval,
+		MaxBufferSize:      defaultRemoteNodeMaxBufferSize,
+		ConnectionInterval: defaultRemoteNodeConnectionInterval,
+		WaitSyncCount:      defaultRemoteNodeWaitSyncCount,
+	}
+
+	return option
+}
+
+func newNode(options *RemoteNodeOption, localNodeID string, logger *zap.Logger) *node {
+	n := &node{
+		addr:               options.Addr,
+		localNodeID:        localNodeID,
+		replicationChan:    make(chan *variable, nodeChSize),
+		buffer:             make(map[string]*variable),
+		maxBufferSize:      options.MaxBufferSize,
+		replicatedVersions: make(map[string]int64),
+		syncInterval:       options.SyncInterval,
+		connectionInterval: options.ConnectionInterval,
+		syncQueue:          make(chan struct{}, options.WaitSyncCount),
+		stopChan:           make(chan struct{}),
+		logger:             logger,
+	}
+
+	go n.listenSyncQueue()
+	go n.listenReplicationChannel()
+	go n.syncByTicker()
+
+	return n
 }
 
 func (n *node) Stop() {
+	close(n.syncQueue)
 	close(n.replicationChan)
 	close(n.stopChan)
+	if err := n.conn.Close(); err != nil {
+		n.logger.Warn("error close grpc connection", zap.Error(err), zap.String("remote node addr", n.addr))
+	}
 }
 
-func (n *node) Connect(addr string, r *Rplx) {
-	t := time.NewTicker(defaultSendHelloRequestInterval)
-	var connected bool
+func (n *node) dial(dialOpts grpc.DialOption) error {
+	var err error
+
+	if n.replicatorClient != nil {
+		return nil
+	}
+
+	n.conn, err = grpc.Dial(n.addr, dialOpts)
+	if err == nil {
+		return err
+	}
+
+	n.replicatorClient = NewReplicatorClient(n.conn)
+	return nil
+}
+
+func (n *node) connect(dialOpts grpc.DialOption, rplx *Rplx) {
+	t := time.NewTicker(n.connectionInterval)
+	defer t.Stop()
 
 	for {
 		select {
 		case <-t.C:
-			hello, err := n.replicatorClient.Hello(context.Background(), &HelloRequest{})
-			if err == nil {
-				n.remoteNodeID = hello.ID
-				connected = true
-				break
+			if err := n.dial(dialOpts); err != nil {
+				n.logger.Error("error dial to remote node", zap.String("addr", n.addr), zap.Error(err))
+				continue
 			}
-			n.logger.Warn("error send hello request", zap.Error(err))
+
+			hello, err := n.replicatorClient.Hello(context.Background(), &HelloRequest{})
+			if err != nil {
+				n.logger.Warn("error send hello request to remote node", zap.String("addr", n.addr), zap.Error(err))
+				continue
+			}
+
+			n.remoteNodeID = hello.ID
+
+			n.logger.Debug("connected to remote node", zap.String("addr", n.addr), zap.String("remote node ID", n.remoteNodeID))
+
+			// send all current variables to replication for new connected node
+			rplx.variablesMx.RLock()
+			for name, v := range rplx.variables {
+				n.buffer[name] = v
+			}
+			rplx.variablesMx.RUnlock()
+
+			rplx.nodesMx.Lock()
+			rplx.nodesIDToAddr[n.remoteNodeID] = n.addr
+			rplx.nodesMx.Unlock()
+
+			atomic.StoreInt32(&n.connected, 1)
+
+			go n.sync()
+
+			return
 		case <-n.stopChan:
-			t.Stop()
 			return
 		}
-		if connected {
-			break
-		}
 	}
-
-	n.logger.Debug("connect to remote node", zap.String("addr", addr), zap.String("remote node ID", n.remoteNodeID))
-
-	r.nodesMx.Lock()
-	defer r.nodesMx.Unlock()
-
-	if _, ok := r.nodes[n.remoteNodeID]; ok {
-		n.Stop()
-		n.logger.Error("node already exists", zap.String("addr", addr))
-		return
-	}
-
-	r.variablesMx.RLock()
-
-	for name, v := range r.variables {
-		n.buffer[name] = v
-	}
-	r.nodes[n.remoteNodeID] = n
-
-	n.logger.Debug("add variables for sync", zap.Int("count", len(n.buffer)), zap.Any("vars", r.variables))
-
-	r.variablesMx.RUnlock()
-
-	go n.sync()
-
-	go n.syncByTicker()
-	go n.listenReplicationChannel()
 }
 
 func (n *node) syncByTicker() {

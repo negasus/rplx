@@ -4,30 +4,35 @@ import (
 	"context"
 	"go.uber.org/zap"
 	"sync/atomic"
-	"time"
 )
 
 const (
 	syncCodeSuccess = int64(0)
 )
 
-// sync sends replication data from buffer to remote node
 func (n *node) sync() {
+	select {
+	case n.syncQueue <- struct{}{}:
+	default:
+	}
+}
+
+func (n *node) listenSyncQueue() {
+	for range n.syncQueue {
+		n.sendSyncRequest()
+	}
+}
+
+// sync sends replication data from buffer to remote node
+func (n *node) sendSyncRequest() {
+	if atomic.LoadInt32(&n.connected) == 0 {
+		return
+	}
+
 	if !atomic.CompareAndSwapInt32(&n.syncing, 0, 1) {
-		n.logger.Debug("call node.sync fail, active sync", zap.String("remote node id", n.remoteNodeID))
-		if n.maxDeferSync > 0 && int(atomic.LoadInt32(&n.deferSyncCounter)) < n.maxDeferSync {
-			n.logger.Debug("place defer sync")
-			time.AfterFunc(n.deferSyncTimeout, func() {
-				atomic.AddInt32(&n.deferSyncCounter, 1)
-				go n.sync()
-			})
-			return
-		}
-		n.logger.Debug("max defer sync reached, abort")
 		return
 	}
 	defer atomic.StoreInt32(&n.syncing, 0)
-	atomic.StoreInt32(&n.deferSyncCounter, 0)
 
 	n.bufferMx.Lock()
 
@@ -108,6 +113,7 @@ func (n *node) sync() {
 
 	if err != nil {
 		n.logger.Error("error send sync message", zap.String("remote node ID", n.remoteNodeID), zap.Error(err))
+		// todo: check error, check off 'n.connected' flag and send node to reconnect?
 		return
 	}
 

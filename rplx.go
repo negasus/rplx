@@ -12,22 +12,11 @@ import (
 )
 
 var (
-	defaultSendVariableToNodeTimeout = time.Millisecond * 500
-	defaultSendToReplicationTimeout  = time.Millisecond * 500
-	defaultGCInterval                = time.Second * 60
-	defaultLogger                    = zap.NewNop()
-	defaultReplicationChanCap        = 10240
-	defaultNodeMaxBufferSize         = 1024
-	defaultNodeMaxDeferSync          = 5
-	defaultNodeDeferSyncTimeout      = time.Second
-	defaultRemoteNodesCheckInterval  = time.Minute
+	defaultGCInterval               = time.Second * 60
+	defaultLogger                   = zap.NewNop()
+	defaultReplicationChanCap       = 1024 * 100
+	defaultRemoteNodesCheckInterval = time.Minute
 )
-
-type RemoteNodeOption struct {
-	Addr         string
-	SyncInterval time.Duration
-	DialOpts     grpc.DialOption
-}
 
 type RemoteNodesProvider func() []*RemoteNodeOption
 
@@ -38,16 +27,15 @@ type Rplx struct {
 
 	replicationChan chan *variable
 
-	nodesMx sync.RWMutex
-	nodes   map[string]*node
+	nodesMx       sync.RWMutex
+	nodes         map[string]*node
+	nodesIDToAddr map[string]string
 
 	variablesMx sync.RWMutex
 	variables   map[string]*variable
 
-	gcInterval        time.Duration
-	nodeMaxBufferSize int
+	gcInterval time.Duration
 
-	remoteNodesCurrentList   map[string]struct{}
 	remoteNodesProvider      RemoteNodesProvider
 	remoteNodesCheckInterval time.Duration
 
@@ -61,10 +49,9 @@ func New(opts ...Option) *Rplx {
 		variables:                make(map[string]*variable),
 		replicationChan:          make(chan *variable, defaultReplicationChanCap),
 		nodes:                    make(map[string]*node),
+		nodesIDToAddr:            make(map[string]string),
 		gcInterval:               defaultGCInterval,
-		nodeMaxBufferSize:        defaultNodeMaxBufferSize,
 		remoteNodesCheckInterval: defaultRemoteNodesCheckInterval,
-		remoteNodesCurrentList:   make(map[string]struct{}),
 	}
 
 	// apply options
@@ -110,53 +97,41 @@ func (rplx *Rplx) startRemoteNodesListener() {
 	t := time.NewTicker(rplx.remoteNodesCheckInterval)
 
 	for range t.C {
-		nodes := rplx.remoteNodesProvider()
+		nodesOptions := rplx.remoteNodesProvider()
 
-		for _, node := range nodes {
-			if _, ok := rplx.remoteNodesCurrentList[node.Addr]; ok {
+		newNodesAddresses := make(map[string]struct{})
+
+		for _, nodeOption := range nodesOptions {
+			newNodesAddresses[nodeOption.Addr] = struct{}{}
+
+			rplx.nodesMx.RLock()
+			_, ok := rplx.nodes[nodeOption.Addr]
+			rplx.nodesMx.RUnlock()
+
+			if ok {
 				continue
 			}
 
-			rplx.logger.Debug("add remote node", zap.String("addr", node.Addr))
+			rplx.logger.Info("add remote node to rplx", zap.String("addr", nodeOption.Addr))
 
-			if err := rplx.addRemoteNode(node.Addr, node.SyncInterval, node.DialOpts); err != nil {
-				rplx.logger.Error("error add remote node", zap.String("addr", node.Addr))
-				continue
-			}
-
-			rplx.remoteNodesCurrentList[node.Addr] = struct{}{}
+			rplx.nodesMx.Lock()
+			rplx.nodes[nodeOption.Addr] = newNode(nodeOption, rplx.nodeID, rplx.logger)
+			go rplx.nodes[nodeOption.Addr].connect(nodeOption.DialOpts, rplx)
+			rplx.nodesMx.Unlock()
 		}
 
-		// todo: stop and remove nodes, not exists in new list 'nodes'
+		// if exists nodes not contains in new list, stop and remove it
+		rplx.nodesMx.Lock()
+		for addr, node := range rplx.nodes {
+			if _, ok := newNodesAddresses[addr]; !ok {
+				rplx.logger.Info("stop and remove remote node", zap.String("id", node.remoteNodeID), zap.String("addr", addr))
+				node.Stop()
+				delete(rplx.nodesIDToAddr, node.remoteNodeID)
+				delete(rplx.nodes, addr)
+			}
+		}
+		rplx.nodesMx.Unlock()
 	}
-}
-
-// addRemoteNode adds and listenReplicationChannel new remote node
-func (rplx *Rplx) addRemoteNode(addr string, syncInterval time.Duration, opts grpc.DialOption) error {
-
-	conn, err := grpc.Dial(addr, opts)
-	if err != nil {
-		return err
-	}
-
-	n := &node{
-		localNodeID:        rplx.nodeID,
-		logger:             rplx.logger,
-		replicationChan:    make(chan *variable, nodeChSize),
-		buffer:             make(map[string]*variable),
-		syncInterval:       syncInterval,
-		maxBufferSize:      rplx.nodeMaxBufferSize,
-		replicatedVersions: make(map[string]int64),
-		stopChan:           make(chan struct{}),
-		maxDeferSync:       defaultNodeMaxDeferSync,
-		deferSyncTimeout:   defaultNodeDeferSyncTimeout,
-	}
-
-	n.replicatorClient = NewReplicatorClient(conn)
-
-	go n.Connect(addr, rplx)
-
-	return nil
 }
 
 // sendToReplication send variable to replication channel
@@ -168,8 +143,8 @@ func (rplx *Rplx) sendToReplication(v *variable) {
 
 	select {
 	case rplx.replicationChan <- v:
-	case <-time.After(defaultSendToReplicationTimeout):
-		rplx.logger.Error("error send variable to replication channel", zap.String("variable name", v.name), zap.Float64("timeout, sec", defaultSendToReplicationTimeout.Seconds()))
+	default:
+		rplx.logger.Error("error send variable to replication channel")
 	}
 }
 
@@ -187,8 +162,8 @@ func (rplx *Rplx) listenReplicationChannel() {
 func (rplx *Rplx) sendVariableToNode(v *variable, n *node) {
 	select {
 	case n.replicationChan <- v:
-	case <-time.After(defaultSendVariableToNodeTimeout):
-		rplx.logger.Error("error send variable to node replication channel", zap.String("remote node remoteNodeID", n.remoteNodeID))
+	default:
+		rplx.logger.Error("error send variable to node replication channel", zap.String("remote node id", n.remoteNodeID))
 	}
 }
 
