@@ -5,7 +5,7 @@
 - remove option WithNodeMaxBufferSize - move to RemoteNoteOption
 - refactoring
 
-## v0.2.9 (2019-08-26)
+## v0.3.0 (2019-08-26)
 
 - fix bug
 
