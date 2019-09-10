@@ -2,6 +2,7 @@ package rplx
 
 import (
 	"context"
+	"fmt"
 	"go.uber.org/zap"
 	"sync/atomic"
 )
@@ -19,18 +20,20 @@ func (n *node) sync() {
 
 func (n *node) listenSyncQueue() {
 	for range n.syncQueue {
-		n.sendSyncRequest()
+		if err := n.sendSyncRequest(); err != nil {
+			n.logger.Error("error send sync request", zap.Error(err), zap.String("remote node ID", n.remoteNodeID))
+		}
 	}
 }
 
 // sync sends replication data from buffer to remote node
-func (n *node) sendSyncRequest() {
+func (n *node) sendSyncRequest() error {
 	if atomic.LoadInt32(&n.connected) == 0 {
-		return
+		return nil
 	}
 
 	if !atomic.CompareAndSwapInt32(&n.syncing, 0, 1) {
-		return
+		return nil
 	}
 	defer atomic.StoreInt32(&n.syncing, 0)
 
@@ -39,7 +42,7 @@ func (n *node) sendSyncRequest() {
 	// if replication called by ticker, but buffer is empty - return
 	if len(n.buffer) == 0 {
 		n.bufferMx.Unlock()
-		return
+		return nil
 	}
 
 	req := SyncRequest{
@@ -104,7 +107,7 @@ func (n *node) sendSyncRequest() {
 
 	if len(req.Variables) == 0 {
 		n.logger.Debug("call node.sync cancelled, empty variables", zap.String("remote node id", n.remoteNodeID))
-		return
+		return nil
 	}
 
 	n.logger.Debug("send sync message", zap.String("remote node ID", n.remoteNodeID), zap.Int("variables", len(req.Variables)), zap.Any("vars map", req.Variables))
@@ -112,14 +115,12 @@ func (n *node) sendSyncRequest() {
 	r, err := n.replicatorClient.Sync(context.Background(), &req)
 
 	if err != nil {
-		n.logger.Error("error send sync message", zap.String("remote node ID", n.remoteNodeID), zap.Error(err))
 		// todo: check error, check off 'n.connected' flag and send node to reconnect?
-		return
+		return fmt.Errorf("error call sync method, %v", err)
 	}
 
 	if r.Code != syncCodeSuccess {
-		n.logger.Error("error sync response code", zap.String("remote node ID", n.remoteNodeID), zap.Int64("code", r.Code))
-		return
+		return fmt.Errorf("error sync response code %d", r.Code)
 	}
 
 	// mark variables as replicated
@@ -128,4 +129,6 @@ func (n *node) sendSyncRequest() {
 		n.replicatedVersions[key] = stamp
 	}
 	n.replicatedVersionsMx.Unlock()
+
+	return nil
 }

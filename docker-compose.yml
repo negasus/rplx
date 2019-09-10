@@ -1,23 +1,45 @@
+# Sync topology
+# node1 <-> node2 -> node3 -> node4
+
 version: '3'
 services:
+
   node1:
     build:
       context: .
-      dockerfile: ./test/Dockerfile
-    command: ["/app", "--name", "node1", "--nodes", "node2:2001,node3:2001"]
+      dockerfile: test/server/Dockerfile
+    environment:
+      RPLX_NODE_NAME: 'node1'
+      RPLX_NODES: 'node2:3000'
     ports:
       - 2001:2000
+
   node2:
     build:
       context: .
-      dockerfile: ./test/Dockerfile
-    command: ["/app", "--name", "node2", "--nodes", "node1:2001"]
+      dockerfile: test/server/Dockerfile
+    environment:
+      RPLX_NODE_NAME: 'node2'
+      RPLX_NODES: 'node1:3000,node3:3000'
     ports:
       - 2002:2000
+
   node3:
     build:
       context: .
-      dockerfile: ./test/Dockerfile
-    command: ["/app", "--name", "node3", "--nodes", "node1:2001"]
+      dockerfile: test/server/Dockerfile
+    environment:
+      RPLX_NODE_NAME: 'node3'
+      RPLX_NODES: 'node4:3000'
     ports:
       - 2003:2000
+
+  node4:
+    build:
+      context: .
+      dockerfile: test/server/Dockerfile
+    environment:
+      RPLX_NODE_NAME: 'node4'
+      RPLX_NODES: ''
+    ports:
+      - 2004:2000

@@ -240,7 +240,7 @@ func (m *HelloRequest) XXX_DiscardUnknown() {
 var xxx_messageInfo_HelloRequest proto.InternalMessageInfo
 
 type HelloResponse struct {
-	ID                   string   `protobuf:"bytes,1,opt,name=remoteNodeID,proto3" json:"remoteNodeID,omitempty"`
+	ID                   string   `protobuf:"bytes,1,opt,name=ID,proto3" json:"ID,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`

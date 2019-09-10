@@ -52,3 +52,12 @@ Returns two maps, where variable name as map item key and variable value as map 
 
 First return param contains not expires variables. 
 Second param contains expired (while not garbage colleced) variables
+
+## Run integration tests
+
+```
+docker-compose up -d
+docker build -t client -f ./tests/client/Dockerfile .
+docker run --rm --net host client
+docker-compose down -v
+```
