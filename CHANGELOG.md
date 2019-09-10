@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.2.10 (2019-09-10)
+
+- pass grpc options to rplx.StartReplicationServer method
+- add rplx.Stop method
+
 ## v0.2.9 (2019-08-27)
 
 - remove option WithNodeMaxBufferSize - move to RemoteNoteOption
