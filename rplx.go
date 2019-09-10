@@ -103,9 +103,9 @@ func (rplx *Rplx) Stop() {
 }
 
 // StartReplicationServer starts grpc server for receive sync messages from remote nodes
-func (rplx *Rplx) StartReplicationServer(ln net.Listener) error {
+func (rplx *Rplx) StartReplicationServer(ln net.Listener, grpcOptions ...grpc.ServerOption) error {
 
-	rplx.grpcServer = grpc.NewServer()
+	rplx.grpcServer = grpc.NewServer(grpcOptions...)
 
 	RegisterReplicatorServer(rplx.grpcServer, rplx)
 	reflection.Register(rplx.grpcServer)
