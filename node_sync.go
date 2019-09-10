@@ -59,7 +59,7 @@ func (n *node) sendSyncRequest() {
 
 		lastReplicatedVersion, ok := n.replicatedVersions[name+"@"+n.localNodeID]
 		if !ok {
-			lastReplicatedVersion = 0
+			lastReplicatedVersion = -1
 		}
 
 		if lastReplicatedVersion < v.self.version() {
