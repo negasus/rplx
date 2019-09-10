@@ -39,7 +39,7 @@ func WithReplicationChanCap(c int) Option {
 // WithReadOnly option sets read only mode
 func WithReadOnly() Option {
 	return func(rplx *Rplx) {
-		rplx.readOnly = true
+		rplx.readOnly = 1
 	}
 }
 

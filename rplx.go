@@ -8,6 +8,7 @@ import (
 	"google.golang.org/grpc/reflection"
 	"net"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -36,10 +37,14 @@ type Rplx struct {
 
 	gcInterval time.Duration
 
+	remoteNodesTicker        *time.Ticker
 	remoteNodesProvider      RemoteNodesProvider
 	remoteNodesCheckInterval time.Duration
+	grpcServer               *grpc.Server
 
-	readOnly bool
+	gcTicker *time.Ticker
+
+	readOnly int32
 }
 
 // New creates new Rplx
@@ -75,17 +80,39 @@ func New(opts ...Option) *Rplx {
 	return r
 }
 
+func (rplx *Rplx) Stop() {
+	atomic.StoreInt32(&rplx.readOnly, 1)
+
+	close(rplx.replicationChan)
+
+	if rplx.grpcServer != nil {
+		rplx.grpcServer.GracefulStop()
+	}
+
+	if rplx.remoteNodesTicker != nil {
+		rplx.remoteNodesTicker.Stop()
+	}
+
+	if rplx.gcTicker != nil {
+		rplx.gcTicker.Stop()
+	}
+
+	for _, n := range rplx.nodes {
+		n.Stop()
+	}
+}
+
 // StartReplicationServer starts grpc server for receive sync messages from remote nodes
 func (rplx *Rplx) StartReplicationServer(ln net.Listener) error {
 
-	server := grpc.NewServer()
+	rplx.grpcServer = grpc.NewServer()
 
-	RegisterReplicatorServer(server, rplx)
-	reflection.Register(server)
+	RegisterReplicatorServer(rplx.grpcServer, rplx)
+	reflection.Register(rplx.grpcServer)
 
 	rplx.logger.Debug("start grpc server", zap.String("address", ln.Addr().String()))
 
-	return server.Serve(ln)
+	return rplx.grpcServer.Serve(ln)
 }
 
 // Hello is implementation grpc method for get Hello request
@@ -94,9 +121,9 @@ func (rplx *Rplx) Hello(ctx context.Context, req *HelloRequest) (*HelloResponse,
 }
 
 func (rplx *Rplx) startRemoteNodesListener() {
-	t := time.NewTicker(rplx.remoteNodesCheckInterval)
+	rplx.remoteNodesTicker = time.NewTicker(rplx.remoteNodesCheckInterval)
 
-	for range t.C {
+	for range rplx.remoteNodesTicker.C {
 		nodesOptions := rplx.remoteNodesProvider()
 
 		newNodesAddresses := make(map[string]struct{})
@@ -137,7 +164,7 @@ func (rplx *Rplx) startRemoteNodesListener() {
 // sendToReplication send variable to replication channel
 // if reached timeout defaultSendToReplicationTimeout while send, log error
 func (rplx *Rplx) sendToReplication(v *variable) {
-	if rplx.readOnly {
+	if atomic.LoadInt32(&rplx.readOnly) == 1 {
 		return
 	}
 
@@ -169,11 +196,11 @@ func (rplx *Rplx) sendVariableToNode(v *variable, n *node) {
 
 // startGC start GC loop
 func (rplx *Rplx) startGC() {
-	rplx.logger.Debug("start GC loop")
+	rplx.logger.Debug("start GC loop", zap.Duration("interval", rplx.gcInterval))
 
-	t := time.NewTicker(rplx.gcInterval)
+	rplx.gcTicker = time.NewTicker(rplx.gcInterval)
 
-	for range t.C {
+	for range rplx.gcTicker.C {
 		rplx.gc()
 	}
 }
