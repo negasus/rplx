@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.3.1 (2019-09-11)
+
+- fix version :)
+
 ## v0.2.11 (2019-09-11)
 
 - bix bugs, add tests
