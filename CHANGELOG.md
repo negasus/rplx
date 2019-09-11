@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.2.11 (2019-09-11)
+
+- bix bugs, add tests
+
 ## v0.2.10 (2019-09-10)
 
 - pass grpc options to rplx.StartReplicationServer method
