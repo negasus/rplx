@@ -149,8 +149,8 @@ func (n *node) connect(dialOpts grpc.DialOption, rplx *Rplx) {
 
 			// send all current variables to replication for new connected node
 			rplx.variablesMx.RLock()
-			for name, v := range rplx.variables {
-				n.buffer[name] = v
+			for _, v := range rplx.variables {
+				n.replicationChan <- v
 			}
 			rplx.variablesMx.RUnlock()
 
