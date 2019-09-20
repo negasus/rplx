@@ -10,14 +10,14 @@ import (
 )
 
 const (
-	defaultRemoteNodeConnectionInterval = time.Second * 5
-	defaultRemoteNodeSyncInterval       = time.Second * 10
-	defaultRemoteNodeMaxBufferSize      = 1024
-	defaultRemoteNodeWaitSyncCount      = 10
+	defaultRemoteNodeConnectionInterval = time.Second * 5 // interval for connect to remote node
+	defaultRemoteNodeSyncInterval       = time.Second * 2 // interval for sync with remote node
+	defaultRemoteNodeMaxBufferSize      = 1024            // by reach this limit, inits sync process
+	defaultRemoteNodeWaitSyncCount      = 5               // count sync tasks in queue, while current sync in progress
 )
 
 var (
-	nodeChSize = 1024
+	nodeChSize = 1024 * 1024
 )
 
 // node describe remote node
