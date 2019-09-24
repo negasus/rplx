@@ -55,6 +55,7 @@ type node struct {
 	logger *zap.Logger
 }
 
+// RemoteNodeOption describe options for RemoteNode, returns from RemoteNodeProvider
 type RemoteNodeOption struct {
 	Addr               string
 	DialOpts           grpc.DialOption

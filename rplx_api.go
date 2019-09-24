@@ -8,7 +8,8 @@ import (
 var (
 	// ErrVariableNotExists returns if variable not exists
 	ErrVariableNotExists = errors.New("variable not exists")
-	ErrVariableExpired   = errors.New("variable expired")
+	// ErrVariableExpired returns if variable is expired
+	ErrVariableExpired = errors.New("variable expired")
 )
 
 // Get returns variable v or error if variable not exists or expired

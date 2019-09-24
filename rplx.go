@@ -19,6 +19,7 @@ var (
 	defaultRemoteNodesCheckInterval = time.Minute
 )
 
+// RemoteNodesProvider is type for function, called automatically and returns info about remote nodes
 type RemoteNodesProvider func() []*RemoteNodeOption
 
 // Rplx describe main Rplx object
@@ -80,6 +81,7 @@ func New(opts ...Option) *Rplx {
 	return r
 }
 
+// Stop Rplx
 func (rplx *Rplx) Stop() {
 	atomic.StoreInt32(&rplx.readOnly, 1)
 
