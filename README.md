@@ -59,7 +59,7 @@ Second param contains expired (while not garbage colleced) variables
 
 ```
 docker-compose up -d
-docker build -t client -f ./tests/client/Dockerfile .
+docker build -t client -f ./test/client/Dockerfile .
 docker run --rm --net host client
 docker-compose down -v
 ```
