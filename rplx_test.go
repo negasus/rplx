@@ -7,28 +7,85 @@ import (
 	"time"
 )
 
-func TestRplx_Upsert_TTL_Upsert(t *testing.T) {
-	var err error
-	var v int64
-
+func TestAPI_Upsert_NewVariable(t *testing.T) {
 	r := New()
 
-	r.Upsert("VAR-1", 100)
+	tm := time.Now().UTC()
 
-	v, err = r.Get("VAR-1")
-	assert.NoError(t, err)
-	assert.Equal(t, int64(100), v)
+	newValue := r.Upsert("VAR-1", 100)
+	assert.Equal(t, int64(100), newValue)
 
-	// make variable expired
-	err = r.UpdateTTL("VAR-1", time.Now().Add(-time.Second))
-	assert.NoError(t, err)
+	v, ok := r.variables["VAR-1"]
+	require.True(t, ok)
 
-	// Variable not garbage collected!
-	r.Upsert("VAR-1", 200)
+	assert.Equal(t, int64(100), v.self.val)
+	assert.True(t, v.self.ver >= tm.UnixNano())
+	assert.Len(t, v.remoteItems, 0)
+}
 
-	v, err = r.Get("VAR-1")
+func TestAPI_Upsert_ExistsVariable(t *testing.T) {
+	r := New()
+	v := newVariable("VAR-1")
+
+	vt := time.Now().UTC().Add(-time.Second).UnixNano()
+
+	v.self.val = 150
+	v.self.ver = vt
+	r.variables["VAR-1"] = v
+
+	newValue := r.Upsert("VAR-1", 100)
+	assert.Equal(t, int64(250), newValue)
+
+	v, ok := r.variables["VAR-1"]
+	require.True(t, ok)
+
+	assert.Equal(t, int64(250), v.self.val)
+	assert.True(t, v.self.ver > vt)
+	assert.Len(t, v.remoteItems, 0)
+}
+
+func TestAPI_Upsert_ExpiredVariable(t *testing.T) {
+	r := New()
+
+	v := newVariable("VAR-1")
+	v.ttl = time.Now().UTC().Add(-time.Second).UnixNano()
+
+	v.self.val = 150
+	r.variables["VAR-1"] = v
+
+	newValue := r.Upsert("VAR-1", 100)
+	assert.Equal(t, int64(100), newValue)
+
+	v, ok := r.variables["VAR-1"]
+	require.True(t, ok)
+
+	assert.Equal(t, int64(100), v.self.val)
+	assert.Equal(t, int64(0), v.ttl)
+	assert.Len(t, v.remoteItems, 0)
+}
+
+func TestAPI_UpdateTTL_NotExistsVariable(t *testing.T) {
+	r := New()
+
+	err := r.UpdateTTL("VAR-1", time.Now())
+
+	require.Error(t, err)
+	assert.Equal(t, "variable not exists", err.Error())
+}
+
+func TestAPI_UpdateTTL_ExistsVariable(t *testing.T) {
+	r := New()
+
+	tt := time.Now().UTC().Add(time.Second)
+
+	v := newVariable("VAR-1")
+	v.ttl = time.Now().UTC().Add(-time.Second).UnixNano()
+	r.variables["VAR-1"] = v
+
+	err := r.UpdateTTL("VAR-1", tt)
 	require.NoError(t, err)
-	assert.Equal(t, int64(200), v)
+
+	assert.Equal(t, tt.UnixNano(), r.variables["VAR-1"].ttl)
 }
 
 func TestAPI_All(t *testing.T) {
