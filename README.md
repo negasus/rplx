@@ -4,11 +4,37 @@
 
 Golang library for multi master replication integer variables with TTL support
 
-> todo full description
+> todo
 
 ## Usage examples
 
-> todo
+```
+func main() {
+	r = rplx.New(
+		rplx.WithRemoteNodesProvider(remoteNodes()),
+	)
+
+	ln, err := net.Listen("tcp4", "127.0.0.1:3001")  
+
+	if err != nil {
+		panic(err)
+	}
+
+	if err := r.StartReplicationServer(ln); err != nil {
+		panic(err)
+	}
+}
+
+func remoteNodes() []*rplx.RemoteNodeOption {
+    nodes := make([]*rplx.RemoteNodeOption, 0)
+
+    nodes = append(nodes, &rplx.DefaultRemoteNodeOption("127.0.0.1:3002")) 
+
+    return nodes
+}
+```
+
+Also see example in `test` folder
 
 ## Public API
 
@@ -63,3 +89,7 @@ docker build -t client -f ./test/client/Dockerfile .
 docker run --rm --net host client
 docker-compose down -v
 ```
+
+### Additional 
+
+- README.RUS.md

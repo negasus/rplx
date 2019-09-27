@@ -2,9 +2,97 @@
 
 > Произносится как "Репликс"
 
-Библиотека для мульти-мастер репликации int64 чисел с поддержкой TTL
+Golang библиотека для мульти-мастер репликации целых чисел (int64) с поддержкой TTL
 
-### Причины появления
+> todo
+
+## Пример использования
+
+```
+func main() {
+	r = rplx.New(
+		rplx.WithRemoteNodesProvider(remoteNodes()),
+	)
+
+	ln, err := net.Listen("tcp4", "127.0.0.1:3001")  
+
+	if err != nil {
+		panic(err)
+	}
+
+	if err := r.StartReplicationServer(ln); err != nil {
+		panic(err)
+	}
+}
+
+func remoteNodes() []*rplx.RemoteNodeOption {
+    nodes := make([]*rplx.RemoteNodeOption, 0)
+
+    nodes = append(nodes, &rplx.DefaultRemoteNodeOption("127.0.0.1:3002")) 
+
+    return nodes
+}
+```
+
+Также смотрите примеры в папке `test` данного репозитория
+
+## Публичное API
+
+### Get
+> `Get(name string) (int64, error)`
+
+Возвращает значение переменной или ошибку, если переменная просрочена или не существует 
+
+Ошибки:
+- ErrVariableNotExists
+- ErrVariableExpired
+
+### Delete
+> `Delete(name string) error`
+
+Удаляет переменную
+
+Ошибки:
+- ErrVariableNotExists
+
+По факту этот метод устанавливает для переменной TTL в значение "Сейчас минус 1 секунда", отправляет эту информацию на репликацию и удаляет переменную из локального кеша
+
+### UpdateTTL
+
+> `UpdateTTL(name string, ttl time.Time) error`
+
+Обновление TTL для переменной
+
+Ошибки:
+- ErrVariableNotExists
+
+### Upsert
+
+> `Upsert(name string, delta int64)`
+
+Обновление значения переменной на указанную дельту. Либо создание переменной, если она не существует
+
+### All
+
+> `All() (notExpired map[string]int64, expired map[string]int64)`
+
+Возвращает две карты (map), где ключ - имя переменной, а значение - значение переменной 
+
+Первая карта - активные, не просроченные переменные
+Вторая карта - просроченные, но еще не удаленные из локального кеша перееменные
+
+## Запуск интеграционных тестов
+
+```
+docker-compose up -d
+docker build -t client -f ./test/client/Dockerfile .
+docker run --rm --net host client
+docker-compose down -v
+```
+
+### Additional
+
+Причины появления
 
 Кейс в одной из рабочих систем:
 
