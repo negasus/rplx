@@ -173,3 +173,65 @@ func TestVariableTTLVersion(t *testing.T) {
 		})
 	}
 }
+
+func TestVariableUpdate(t *testing.T) {
+	type fields struct {
+		name        string
+		self        *variableItem
+		ttl         int64
+		ttlVersion  int64
+		remoteItems map[string]*variableItem
+	}
+	type args struct {
+		delta int64
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+		want   int64
+	}{
+		{
+			name: "update empty variable",
+			fields: fields{
+				name:        "var1",
+				self:        &variableItem{},
+				ttl:         0,
+				ttlVersion:  0,
+				remoteItems: nil,
+			},
+			args: args{
+				delta: 100,
+			},
+			want: 100,
+		},
+		{
+			name: "update exists variable",
+			fields: fields{
+				name:        "var1",
+				self:        &variableItem{val: 200},
+				ttl:         0,
+				ttlVersion:  0,
+				remoteItems: nil,
+			},
+			args: args{
+				delta: 100,
+			},
+			want: 300,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			v := &variable{
+				name:        tt.fields.name,
+				self:        tt.fields.self,
+				ttl:         tt.fields.ttl,
+				ttlVersion:  tt.fields.ttlVersion,
+				remoteItems: tt.fields.remoteItems,
+			}
+			if got := v.update(tt.args.delta); got != tt.want {
+				t.Errorf("update() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
