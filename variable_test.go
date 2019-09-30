@@ -91,3 +91,44 @@ func TestVariableGet(t *testing.T) {
 		})
 	}
 }
+
+func TestVariableTTL(t *testing.T) {
+	type fields struct {
+		name        string
+		self        *variableItem
+		ttl         int64
+		ttlVersion  int64
+		remoteItems map[string]*variableItem
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   int64
+	}{
+		{
+			name: "load TTL",
+			fields: fields{
+				name:        "var1",
+				self:        &variableItem{},
+				ttl:         100,
+				ttlVersion:  0,
+				remoteItems: map[string]*variableItem{},
+			},
+			want: 100,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			v := &variable{
+				name:        tt.fields.name,
+				self:        tt.fields.self,
+				ttl:         tt.fields.ttl,
+				ttlVersion:  tt.fields.ttlVersion,
+				remoteItems: tt.fields.remoteItems,
+			}
+			if got := v.TTL(); got != tt.want {
+				t.Errorf("TTL() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
