@@ -3,6 +3,7 @@ package rplx
 import (
 	"reflect"
 	"testing"
+	"time"
 )
 
 func TestVariableNew(t *testing.T) {
@@ -185,11 +186,15 @@ func TestVariableUpdate(t *testing.T) {
 	type args struct {
 		delta int64
 	}
+	type wants struct {
+		Value            int64
+		SelfVariableItem *variableItem
+	}
 	tests := []struct {
 		name   string
 		fields fields
 		args   args
-		want   int64
+		want   wants
 	}{
 		{
 			name: "update empty variable",
@@ -203,7 +208,10 @@ func TestVariableUpdate(t *testing.T) {
 			args: args{
 				delta: 100,
 			},
-			want: 100,
+			want: wants{
+				Value:            100,
+				SelfVariableItem: &variableItem{val: 100, ver: time.Now().UTC().UnixNano()},
+			},
 		},
 		{
 			name: "update exists variable",
@@ -217,7 +225,10 @@ func TestVariableUpdate(t *testing.T) {
 			args: args{
 				delta: 100,
 			},
-			want: 300,
+			want: wants{
+				Value:            300,
+				SelfVariableItem: &variableItem{val: 300, ver: time.Now().UTC().UnixNano()},
+			},
 		},
 	}
 	for _, tt := range tests {
@@ -229,8 +240,11 @@ func TestVariableUpdate(t *testing.T) {
 				ttlVersion:  tt.fields.ttlVersion,
 				remoteItems: tt.fields.remoteItems,
 			}
-			if got := v.update(tt.args.delta); got != tt.want {
+			if got := v.update(tt.args.delta); got != tt.want.Value {
 				t.Errorf("update() = %v, want %v", got, tt.want)
+			}
+			if v.self.val != tt.want.SelfVariableItem.val || v.self.ver < tt.want.SelfVariableItem.ver {
+				t.Errorf("self item after update() = %v, want %v", v.self, tt.want.SelfVariableItem)
 			}
 		})
 	}
