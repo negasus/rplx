@@ -68,7 +68,7 @@ func remoteNodes(nodesStr string) rplx.RemoteNodesProvider {
 			}
 			nodes = append(nodes, &rplx.RemoteNodeOption{
 				Addr:               node,
-				DialOpts:           grpc.WithInsecure(),
+				DialOpts:           []grpc.DialOption{grpc.WithInsecure()},
 				SyncInterval:       1,
 				MaxBufferSize:      0,
 				ConnectionInterval: 1,

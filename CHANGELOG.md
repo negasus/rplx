@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.3.3 (2019-10-08)
+
+- field RemoteNodeOption.DialOpts change to slice instead single option
+- add tests 
+
 ## v0.3.2 (2019-09-20)
 
 - fix possible race condition while connect to remote node

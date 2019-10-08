@@ -58,7 +58,7 @@ type node struct {
 // RemoteNodeOption describe options for RemoteNode, returns from RemoteNodeProvider
 type RemoteNodeOption struct {
 	Addr               string
-	DialOpts           grpc.DialOption
+	DialOpts           []grpc.DialOption
 	SyncInterval       time.Duration
 	MaxBufferSize      int
 	ConnectionInterval time.Duration
@@ -69,7 +69,7 @@ type RemoteNodeOption struct {
 func DefaultRemoteNodeOption(addr string) *RemoteNodeOption {
 	option := &RemoteNodeOption{
 		Addr:               addr,
-		DialOpts:           grpc.WithInsecure(),
+		DialOpts:           []grpc.DialOption{grpc.WithInsecure()},
 		SyncInterval:       defaultRemoteNodeSyncInterval,
 		MaxBufferSize:      defaultRemoteNodeMaxBufferSize,
 		ConnectionInterval: defaultRemoteNodeConnectionInterval,
@@ -110,14 +110,14 @@ func (n *node) Stop() {
 	}
 }
 
-func (n *node) dial(dialOpts grpc.DialOption) error {
+func (n *node) dial(dialOpts []grpc.DialOption) error {
 	var err error
 
 	if n.replicatorClient != nil {
 		return nil
 	}
 
-	n.conn, err = grpc.Dial(n.addr, dialOpts)
+	n.conn, err = grpc.Dial(n.addr, dialOpts...)
 	if err != nil {
 		return err
 	}
@@ -126,7 +126,7 @@ func (n *node) dial(dialOpts grpc.DialOption) error {
 	return nil
 }
 
-func (n *node) connect(dialOpts grpc.DialOption, rplx *Rplx) {
+func (n *node) connect(dialOpts []grpc.DialOption, rplx *Rplx) {
 	t := time.NewTicker(n.connectionInterval)
 	defer t.Stop()
 
