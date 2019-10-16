@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.3.4 (2019-10-16)
+
+- bug fix: probably panic with write to closed channel
+
 ## v0.3.3 (2019-10-08)
 
 - field RemoteNodeOption.DialOpts change to slice instead single option
