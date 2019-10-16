@@ -182,17 +182,13 @@ func (rplx *Rplx) listenReplicationChannel() {
 	for v := range rplx.replicationChan {
 		rplx.nodesMx.RLock()
 		for _, node := range rplx.nodes {
-			go rplx.sendVariableToNode(v, node)
+			select {
+			case node.replicationChan <- v:
+			default:
+				rplx.logger.Error("error send variable to node replication channel", zap.String("remote node id", node.remoteNodeID))
+			}
 		}
 		rplx.nodesMx.RUnlock()
-	}
-}
-
-func (rplx *Rplx) sendVariableToNode(v *variable, n *node) {
-	select {
-	case n.replicationChan <- v:
-	default:
-		rplx.logger.Error("error send variable to node replication channel", zap.String("remote node id", n.remoteNodeID))
 	}
 }
 
