@@ -21,13 +21,16 @@ func TestErrorNodeSyncWithBadSyncResponseCode(t *testing.T) {
 		Code: 1,
 	}, nil)
 
+	v := newVariable("VAR-1")
+	v.update(100)
+
 	node1 := &node{
 		logger:           zap.NewNop(),
 		connected:        1,
 		localNodeID:      "localNodeID",
 		replicatorClient: mockClient,
 		buffer: map[string]*variable{
-			"VAR-1": newVariable("VAR-1"),
+			"VAR-1": v,
 		},
 	}
 
