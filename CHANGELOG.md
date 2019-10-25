@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.3.5 (2019-10-25)
+
+- fix bug with send empty variables to SyncRequest  
+
 ## v0.3.4 (2019-10-16)
 
 - bug fix: probably panic with write to closed channel
