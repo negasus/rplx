@@ -32,7 +32,7 @@ func TestErrorNodeSyncWithBadSyncResponseCode(t *testing.T) {
 	}
 
 	err := node1.sendSyncRequest()
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Equal(t, "error sync response code 1", err.Error())
 }
 
