@@ -1,12 +1,54 @@
 package rplx
 
 import (
+	"context"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
+	"google.golang.org/grpc"
 	"testing"
 )
+
+type replicatorClientMock struct {
+	mock.Mock
+}
+
+func (m *replicatorClientMock) Hello(ctx context.Context, in *HelloRequest, opts ...grpc.CallOption) (*HelloResponse, error) {
+	args := m.Called(ctx, in, opts)
+	return args.Get(0).(*HelloResponse), args.Error(1)
+}
+
+func (m *replicatorClientMock) Sync(ctx context.Context, in *SyncRequest, opts ...grpc.CallOption) (*SyncResponse, error) {
+	args := m.Called(ctx, in, opts)
+	return args.Get(0).(*SyncResponse), args.Error(1)
+}
+
+func TestEmptySyncRequestIfEmptyVariables(t *testing.T) {
+
+	mockClient := &replicatorClientMock{}
+
+	v := newVariable("VAR-1")
+
+	node1 := &node{
+		logger:           zap.NewNop(),
+		connected:        1,
+		localNodeID:      "localNodeID",
+		replicatorClient: mockClient,
+		buffer: map[string]*variable{
+			"VAR-1": v,
+		},
+		replicatedVersions: map[string]int64{},
+	}
+
+	err := node1.sendSyncRequest()
+	require.NoError(t, err)
+
+	mockClient.AssertNotCalled(t, "Sync", mock.Anything, mock.Anything, mock.Anything)
+
+	mockClient.AssertExpectations(t)
+}
 
 func TestErrorNodeSyncWithBadSyncResponseCode(t *testing.T) {
 	ctrl := gomock.NewController(t)
