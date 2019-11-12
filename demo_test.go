@@ -74,6 +74,7 @@ func TestErrorNodeSyncWithBadSyncResponseCode(t *testing.T) {
 		buffer: map[string]*variable{
 			"VAR-1": v,
 		},
+		metrics: newMetrics(),
 	}
 
 	err := node1.sendSyncRequest()
@@ -133,6 +134,7 @@ func TestFillReplicatedVersionsAfterNodeSync(t *testing.T) {
 			"VAR-1": var1,
 		},
 		replicatedVersions: map[string]int64{},
+		metrics:            newMetrics(),
 	}
 
 	err := node1.sendSyncRequest()
