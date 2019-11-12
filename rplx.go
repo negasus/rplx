@@ -46,6 +46,8 @@ type Rplx struct {
 	gcTicker *time.Ticker
 
 	readOnly int32
+
+	withMetrics bool
 }
 
 // New creates new Rplx
