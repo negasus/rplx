@@ -9,6 +9,8 @@ import (
 func (rplx *Rplx) Sync(ctx context.Context, req *SyncRequest) (*SyncResponse, error) {
 	rplx.logger.Debug("get SyncRequest", zap.Int("variables", len(req.Variables)), zap.String("from node", req.NodeID), zap.Any("vars", req.Variables))
 
+	rplx.metrics.variablesGot.WithLabelValues(req.NodeID).Add(float64(len(req.Variables)))
+
 	go rplx.sync(req)
 
 	return &SyncResponse{Code: 0}, nil

@@ -5,6 +5,7 @@ import (
 )
 
 type metrics struct {
+	variablesGot               *prometheus.CounterVec
 	variablesSent              *prometheus.CounterVec
 	variablesSentResponseCodes *prometheus.CounterVec
 	variablesSentDuration      *prometheus.HistogramVec
@@ -12,6 +13,12 @@ type metrics struct {
 
 func newMetrics() *metrics {
 	m := &metrics{}
+
+	m.variablesGot = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Name: "rplx_variables_got",
+		Help: "Rplx Variables Got",
+	}, []string{"remote_node_id"})
+	prometheus.MustRegister(m.variablesGot)
 
 	m.variablesSent = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Name: "rplx_variables_sent",
