@@ -56,3 +56,10 @@ func WithRemoteNodesCheckInterval(interval time.Duration) Option {
 		rplx.remoteNodesCheckInterval = interval
 	}
 }
+
+// WithMetrics option
+func WithMetrics(interval time.Duration) Option {
+	return func(rplx *Rplx) {
+		rplx.withMetrics = true
+	}
+}

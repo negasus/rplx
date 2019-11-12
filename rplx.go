@@ -48,7 +48,8 @@ type Rplx struct {
 
 	readOnly int32
 
-	metrics *metrics
+	withMetrics bool
+	metrics     *metrics
 }
 
 // New creates new Rplx
@@ -69,6 +70,9 @@ func New(opts ...Option) *Rplx {
 	}
 
 	r.metrics = newMetrics()
+	if r.withMetrics {
+		r.metrics.register()
+	}
 
 	if r.nodeID == "" {
 		r.nodeID = uuid.New().String()
