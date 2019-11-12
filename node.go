@@ -53,6 +53,8 @@ type node struct {
 	stopChan chan struct{}
 
 	logger *zap.Logger
+
+	metrics *metrics
 }
 
 // RemoteNodeOption describe options for RemoteNode, returns from RemoteNodeProvider
@@ -79,7 +81,7 @@ func DefaultRemoteNodeOption(addr string) *RemoteNodeOption {
 	return option
 }
 
-func newNode(options *RemoteNodeOption, localNodeID string, logger *zap.Logger) *node {
+func newNode(options *RemoteNodeOption, localNodeID string, logger *zap.Logger, metrics *metrics) *node {
 	n := &node{
 		addr:               options.Addr,
 		localNodeID:        localNodeID,
@@ -92,6 +94,7 @@ func newNode(options *RemoteNodeOption, localNodeID string, logger *zap.Logger) 
 		syncQueue:          make(chan struct{}, options.WaitSyncCount),
 		stopChan:           make(chan struct{}),
 		logger:             logger,
+		metrics:            metrics,
 	}
 
 	go n.listenSyncQueue()

@@ -47,7 +47,7 @@ type Rplx struct {
 
 	readOnly int32
 
-	withMetrics bool
+	metrics *metrics
 }
 
 // New creates new Rplx
@@ -66,6 +66,8 @@ func New(opts ...Option) *Rplx {
 	for _, o := range opts {
 		o(r)
 	}
+
+	r.metrics = newMetrics()
 
 	if r.nodeID == "" {
 		r.nodeID = uuid.New().String()
@@ -146,7 +148,7 @@ func (rplx *Rplx) startRemoteNodesListener() {
 			rplx.logger.Info("add remote node to rplx", zap.String("addr", nodeOption.Addr))
 
 			rplx.nodesMx.Lock()
-			rplx.nodes[nodeOption.Addr] = newNode(nodeOption, rplx.nodeID, rplx.logger)
+			rplx.nodes[nodeOption.Addr] = newNode(nodeOption, rplx.nodeID, rplx.logger, rplx.metrics)
 			go rplx.nodes[nodeOption.Addr].connect(nodeOption.DialOpts, rplx)
 			rplx.nodesMx.Unlock()
 		}

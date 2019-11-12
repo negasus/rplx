@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	"go.uber.org/zap"
+	"strconv"
 	"sync/atomic"
+	"time"
 )
 
 const (
@@ -112,12 +114,20 @@ func (n *node) sendSyncRequest() error {
 
 	n.logger.Debug("send sync message", zap.String("remote node ID", n.remoteNodeID), zap.Int("variables", len(req.Variables)), zap.Any("vars map", req.Variables))
 
+	n.metrics.variablesSent.WithLabelValues(n.remoteNodeID).Add(float64(len(req.Variables)))
+	timeStart := time.Now()
+
 	r, err := n.replicatorClient.Sync(context.Background(), &req)
+
+	n.metrics.variablesSentDuration.WithLabelValues(n.remoteNodeID).Observe(time.Since(timeStart).Seconds())
 
 	if err != nil {
 		// todo: check error, check off 'n.connected' flag and send node to reconnect?
+		n.metrics.variablesSentResponseCodes.WithLabelValues(n.remoteNodeID, "-1").Inc()
 		return fmt.Errorf("error call sync method, %v", err)
 	}
+
+	n.metrics.variablesSentResponseCodes.WithLabelValues(n.remoteNodeID, strconv.Itoa(int(r.Code))).Inc()
 
 	if r.Code != syncCodeSuccess {
 		return fmt.Errorf("error sync response code %d", r.Code)
