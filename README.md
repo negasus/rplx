@@ -36,6 +36,19 @@ func remoteNodes() []*rplx.RemoteNodeOption {
 
 Also see example in `test` folder
 
+### Metrics
+
+Creates `Rplx` instance with option `WithMetrics()` will registers prometheus metrics.
+
+| Name | Type | Description |
+|-|-|-|
+| rplx_variables_got | Counter Vector | Stores received variables count with fields: 'remote_node_id' |  
+| rplx_variables_sent | Counter Vector | Stores sent variables count with fields: 'remote_node_id' |  
+| rplx_variables_sent_response_codes | Counter Vector | Stores response code, received while variable sent with fields: 'remote_node_id', 'code' |  
+| rplx_variables_sent_duration | Histogram Vector | Stores duration for Sync Request, fields: 'remote_node_id', 'code' |
+
+Also included metrics from package [github.com/grpc-ecosystem/go-grpc-prometheus](github.com/grpc-ecosystem/go-grpc-prometheus)   
+
 ## Public API
 
 ### Get

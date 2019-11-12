@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.4.0 (2019-11-12)
+
+- add prometheus metrics
+
 ## v0.3.5 (2019-10-25)
 
 - fix bug with send empty variables to SyncRequest  
