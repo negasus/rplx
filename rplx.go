@@ -3,6 +3,7 @@ package rplx
 import (
 	"context"
 	"github.com/google/uuid"
+	"github.com/grpc-ecosystem/go-grpc-prometheus"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
@@ -110,11 +111,15 @@ func (rplx *Rplx) Stop() {
 
 // StartReplicationServer starts grpc server for receive sync messages from remote nodes
 func (rplx *Rplx) StartReplicationServer(ln net.Listener, grpcOptions ...grpc.ServerOption) error {
+	grpcOptions = append(grpcOptions, grpc.StreamInterceptor(grpc_prometheus.StreamServerInterceptor))
+	grpcOptions = append(grpcOptions, grpc.UnaryInterceptor(grpc_prometheus.UnaryServerInterceptor))
 
 	rplx.grpcServer = grpc.NewServer(grpcOptions...)
 
 	RegisterReplicatorServer(rplx.grpcServer, rplx)
 	reflection.Register(rplx.grpcServer)
+
+	grpc_prometheus.Register(rplx.grpcServer)
 
 	rplx.logger.Debug("start grpc server", zap.String("address", ln.Addr().String()))
 
