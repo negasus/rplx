@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.4.1 (2019-12-04)
+
+- bugfix: race condition
+
 ## v0.4.0 (2019-11-12)
 
 - add prometheus metrics
