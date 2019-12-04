@@ -24,7 +24,6 @@ func (rplx *Rplx) sync(req *SyncRequest) {
 			localVar = newVariable(name)
 			rplx.variables[name] = localVar
 		}
-		rplx.variablesMx.Unlock()
 
 		varWasUpdated := false
 
@@ -60,6 +59,8 @@ func (rplx *Rplx) sync(req *SyncRequest) {
 			localVar.ttlVersion = v.TTLVersion
 			varWasUpdated = true
 		}
+
+		rplx.variablesMx.Unlock()
 
 		if varWasUpdated {
 			go rplx.sendToReplication(localVar)
