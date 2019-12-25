@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.4.2 (2019-12-25)
+
+- add VariablePartsCount method for debug purpose
+- some refactoring
+
 ## v0.4.1 (2019-12-04)
 
 - bugfix: race condition

@@ -31,6 +31,14 @@ func newVariable(name string) *variable {
 	return v
 }
 
+func (v *variable) partsCount() int {
+	v.remoteItemsMx.RLock()
+	partsCount := len(v.remoteItems)
+	v.remoteItemsMx.RUnlock()
+
+	return partsCount
+}
+
 // get returns variable value
 func (v *variable) get() int64 {
 	result := v.self.value()

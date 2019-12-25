@@ -36,6 +36,29 @@ func (rplx *Rplx) Get(name string) (int64, error) {
 	return v.get(), nil
 }
 
+// VariablePartsCount returns count remote nodes parts for variable
+func (rplx *Rplx) VariablePartsCount(name string) (int, error) {
+	rplx.variablesMx.RLock()
+	v, ok := rplx.variables[name]
+	rplx.variablesMx.RUnlock()
+
+	if !ok {
+		return 0, ErrVariableNotExists
+	}
+
+	ttl := v.TTL()
+
+	if ttl > 0 && ttl < time.Now().UTC().UnixNano() {
+		rplx.variablesMx.Lock()
+		delete(rplx.variables, name)
+		rplx.variablesMx.Unlock()
+
+		return 0, ErrVariableExpired
+	}
+
+	return v.partsCount(), nil
+}
+
 // Delete sets for variable ttl with -1 sec from Now,
 // sends variable to replication (update TTL on clients) and remove variable from rplx.variables map
 func (rplx *Rplx) Delete(name string) error {
