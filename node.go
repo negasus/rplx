@@ -105,9 +105,9 @@ func newNode(options *RemoteNodeOption, localNodeID string, logger *zap.Logger, 
 }
 
 func (n *node) Stop() {
+	close(n.stopChan)
 	close(n.syncQueue)
 	close(n.replicationChan)
-	close(n.stopChan)
 	if err := n.conn.Close(); err != nil {
 		n.logger.Warn("error close grpc connection", zap.Error(err), zap.String("remote node addr", n.addr))
 	}
@@ -135,6 +135,8 @@ func (n *node) connect(dialOpts []grpc.DialOption, rplx *Rplx) {
 
 	for {
 		select {
+		case <-n.stopChan:
+			return
 		case <-t.C:
 			if err := n.dial(dialOpts); err != nil {
 				n.logger.Error("error dial to remote node", zap.String("addr", n.addr), zap.Error(err))
@@ -167,22 +169,20 @@ func (n *node) connect(dialOpts []grpc.DialOption, rplx *Rplx) {
 			go n.sync()
 
 			return
-		case <-n.stopChan:
-			return
 		}
 	}
 }
 
 func (n *node) syncByTicker() {
 	t := time.NewTicker(n.syncInterval)
+	defer t.Stop()
 
 	for {
 		select {
+		case <-n.stopChan:
+			return
 		case <-t.C:
 			n.sync()
-		case <-n.stopChan:
-			t.Stop()
-			return
 		}
 	}
 }
