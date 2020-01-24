@@ -15,6 +15,8 @@ const (
 
 func (n *node) sync() {
 	select {
+	case <-n.stopChan:
+		return
 	case n.syncQueue <- struct{}{}:
 	default:
 	}

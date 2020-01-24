@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.4.3 (2020-01-24)
+
+- race cond fix
+
 ## v0.4.2 (2019-12-25)
 
 - add VariablePartsCount method for debug purpose
