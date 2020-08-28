@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.4.4 (2020-08-28)
+
+- add a cache into the variable
+
 ## v0.4.3 (2020-01-24)
 
 - race cond fix
