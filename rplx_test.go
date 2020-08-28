@@ -7,6 +7,25 @@ import (
 	"time"
 )
 
+func TestAPI_Get_with_cache(t *testing.T) {
+	v := newVariable("A")
+	v.CacheDuration = 1
+	v.self.val = 100
+
+	val := v.get()
+	assert.Equal(t, int64(100), val)
+
+	v.self.val = 200
+
+	val = v.get()
+	assert.Equal(t, int64(100), val)
+
+	time.Sleep(time.Second)
+
+	val = v.get()
+	assert.Equal(t, int64(200), val)
+}
+
 func TestAPI_Upsert_NewVariable(t *testing.T) {
 	r := New()
 
@@ -48,6 +67,7 @@ func TestAPI_Upsert_ExpiredVariable(t *testing.T) {
 	r := New()
 
 	v := newVariable("VAR-1")
+	v.CacheDuration = 0
 	v.ttl = time.Now().UTC().Add(-time.Second).UnixNano()
 
 	v.self.val = 150

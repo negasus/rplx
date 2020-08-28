@@ -6,6 +6,10 @@ import (
 	"time"
 )
 
+const (
+	defaultCacheDuration = 5
+)
+
 type variable struct {
 	name string
 
@@ -15,6 +19,10 @@ type variable struct {
 	ttl        int64
 	ttlVersion int64
 
+	cacheTime     int64
+	cacheValue    int64
+	CacheDuration int64
+
 	// variable values for remote nodes
 	// map key - is remove node remoteNodeID
 	remoteItemsMx sync.RWMutex
@@ -23,9 +31,10 @@ type variable struct {
 
 func newVariable(name string) *variable {
 	v := &variable{
-		name:        name,
-		self:        newVariableItem(),
-		remoteItems: make(map[string]*variableItem),
+		name:          name,
+		self:          newVariableItem(),
+		remoteItems:   make(map[string]*variableItem),
+		CacheDuration: defaultCacheDuration,
 	}
 
 	return v
@@ -41,6 +50,10 @@ func (v *variable) partsCount() int {
 
 // get returns variable value
 func (v *variable) get() int64 {
+	if atomic.LoadInt64(&v.cacheTime) > time.Now().UTC().Unix() {
+		return atomic.LoadInt64(&v.cacheValue)
+	}
+
 	result := v.self.value()
 
 	v.remoteItemsMx.RLock()
@@ -48,6 +61,9 @@ func (v *variable) get() int64 {
 		result += item.value()
 	}
 	v.remoteItemsMx.RUnlock()
+
+	atomic.StoreInt64(&v.cacheValue, result)
+	atomic.StoreInt64(&v.cacheTime, time.Now().UTC().Unix()+v.CacheDuration)
 
 	return result
 }

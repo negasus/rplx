@@ -21,11 +21,12 @@ func TestVariableNew(t *testing.T) {
 				name: "var1",
 			},
 			want: &variable{
-				name:        "var1",
-				self:        &variableItem{},
-				ttl:         0,
-				ttlVersion:  0,
-				remoteItems: map[string]*variableItem{},
+				name:          "var1",
+				self:          &variableItem{},
+				ttl:           0,
+				ttlVersion:    0,
+				remoteItems:   map[string]*variableItem{},
+				CacheDuration: defaultCacheDuration,
 			},
 		},
 	}
