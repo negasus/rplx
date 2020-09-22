@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.4.5 (2020-09-22)
+
+- add 'hack' with time sleep for stop remote node
+
 ## v0.4.4 (2020-08-28)
 
 - add a cache into the variable

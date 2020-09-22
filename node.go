@@ -106,6 +106,7 @@ func newNode(options *RemoteNodeOption, localNodeID string, logger *zap.Logger, 
 
 func (n *node) Stop() {
 	close(n.stopChan)
+	time.Sleep(time.Millisecond * 1000)
 	close(n.syncQueue)
 	close(n.replicationChan)
 	if err := n.conn.Close(); err != nil {
